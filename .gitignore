@@ -1,0 +1,24 @@
+# Capturas e dados de treinamento não devem ser versionados.
+data/
+models/*.tflite
+models/*.h5
+models/yamnet*
+
+# Artefatos locais de ferramentas e IDEs.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.vscode/
+.idea/
+.tools/
+*.elf
+*.bin
+*.map
+*.hex
+*.o
+*.d
+audio-teste.wav
+audio-headers.txt
+build/
+dist/
