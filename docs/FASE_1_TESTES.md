@@ -1,76 +1,85 @@
-# Fase 1 — roteiro de validação do firmware
+# Fase 1 — roteiro de testes do firmware
 
-## Ambiente e compilação
+## O que já foi verificado (sem a placa)
 
-- Arduino CLI portátil 1.5.1 instalado em `.tools/arduino-cli` (ignorado pelo Git); o `winget` encontrou o pacote, mas não aplicou o instalador.
-- Core `esp32:esp32` 2.0.17 instalado localmente; FQBN selecionado `esp32:esp32:esp32`.
-- Porta serial detectada: `COM6`. `arduino-cli board list` mostra dispositivo USB serial, placa ainda desconhecida.
-- Sketch de áudio compilado: passou; 268.769 bytes de programa e 21.568 bytes de globais.
-- Firmware principal compilado: passou; 773.189 bytes de programa (58%) e 110.692 bytes de globais (33%), restando 216.988 bytes de RAM dinâmica.
-- Upload, API, taxa real, WAV, sensor durante download e heap em execução: pendentes de validação física.
+| Verificação | Resultado |
+|---|---|
+| Compilação limpa `esp32_server` (core 2.0.17, `--warnings all`) | **Passou, 0 avisos**: 772 497 bytes de programa (58%), 110 716 bytes de globais (33%), 216 964 bytes livres para heap/pilhas |
+| Compilação limpa `teste_audio` | **Passou**: 268 769 bytes (20%) |
+| `tools/teste_fase1.py` (rotas, crítico, resistência, ESP32 fora do ar) contra servidor falso local que segue o contrato | **Passou** — valida o script de teste, **não** o firmware |
+| Filtro de DC novo × antigo, simulado em Python (silêncio, DC 1550) | Antigo: RMS 32 (resíduo de DC); novo: RMS 8 (só o ruído) |
 
-## Compilação e upload
+Tudo o que depende da placa (Wi-Fi, ADC, temporização, heap em execução) está **pendente** e deve ser preenchido na tabela de resultados abaixo.
+
+## Comandos (PowerShell, na raiz do repositório)
 
 ```powershell
+# Descobrir a porta (procure "Serial Port (USB)"; antes era COM6):
+.tools\arduino-cli\arduino-cli.exe --config-file .tools\arduino-cli\arduino-cli.yaml board list
+# Compilar e gravar:
 .tools\arduino-cli\arduino-cli.exe --config-file .tools\arduino-cli\arduino-cli.yaml compile --fqbn esp32:esp32:esp32 src/esp32/esp32_server
 .tools\arduino-cli\arduino-cli.exe --config-file .tools\arduino-cli\arduino-cli.yaml upload -p COM6 --fqbn esp32:esp32:esp32 src/esp32/esp32_server
+# Monitor serial (Ctrl+C para sair):
 .tools\arduino-cli\arduino-cli.exe --config-file .tools\arduino-cli\arduino-cli.yaml monitor -p COM6 -c baudrate=115200
 ```
 
-Confirme no monitor `Ponto de acesso: SENTINELA`, `IP: 192.168.4.1` e `Servidor HTTP pronto`. Conecte o notebook ao AP com senha `sentinela123`.
+Se o upload ficar em `Connecting....`, segure o botão **BOOT** da placa até começar a gravar.
 
-## Verificações HTTP
+## Roteiro na placa
 
-```powershell
-curl.exe -i http://192.168.4.1/
-curl.exe -i http://192.168.4.1/status
-curl.exe -i http://192.168.4.1/sensor
-curl.exe -i http://192.168.4.1/atuador?estado=normal
-curl.exe -i http://192.168.4.1/atuador?estado=alerta
-curl.exe -i http://192.168.4.1/atuador?estado=off
-curl.exe -i http://192.168.4.1/atuador?estado=teste
-curl.exe -i "http://192.168.4.1/atuador?estado=normal&buzzer=1"
-curl.exe -i "http://192.168.4.1/atuador?estado=alerta&buzzer=0"
-curl.exe -i "http://192.168.4.1/config?modo=auto&limiar=45"
-curl.exe -i http://192.168.4.1/config?modo=manual
-curl.exe -i http://192.168.4.1/config?modo=invalido
-curl.exe -i http://192.168.4.1/atuador?estado=invalido
-curl.exe -i "http://192.168.4.1/audio.wav?ms=100"
-curl.exe -i http://192.168.4.1/rota-inexistente
-curl.exe -sS -D audio-headers.txt "http://192.168.4.1/audio.wav?ms=1000" -o audio-teste.wav
-python -c "import wave; w=wave.open('audio-teste.wav'); print('canais=',w.getnchannels(),'bytes/amostra=',w.getsampwidth(),'Hz=',w.getframerate(),'segundos=',w.getnframes()/w.getframerate())"
-```
+**Passo 1 — boot e log serial (2 min).** Grave e abra o monitor. Deve aparecer `AP SENTINELA ativo em http://192.168.4.1/` e `Servidor HTTP pronto`. A cada 10 s surge uma linha `[saude] ...`. Confira:
+- `fs=` entre 15 900 e 16 000 Hz;
+- `perdidas=` 0 ou crescendo muito devagar;
+- `int_max=` perto de 63 µs (até ~150 µs é aceitável);
+- em silêncio, `adc=[a..b]` com valores no meio da faixa (por volta de 1200–1900), **nunca 0**.
 
-O arquivo deve gerar status HTTP 200, `Content-Type: audio/wav` e `Content-Length: 32044` para fs=16 kHz (ou `44 + 2 × fs_real_hz × duração_s`). O script deve informar mono, 2 bytes/amostra, cerca de 16 kHz e 1,0 s. A rota deve rejeitar `ms=100` e aceitar o intervalo de 200 a 2000 ms.
+Feche o monitor antes do passo 2 se a porta COM for necessária para outra coisa (não é necessária para os testes HTTP).
 
-## Teste crítico de áudio + AP
-
-Com o MAX9814 em GPIO 34, sem atuadores externos, execute consultas a `/sensor` falando e batendo palmas. RMS/pico devem variar e `clipping` deve ser falso em uso normal. Observe `fs_real_hz` em `/status`; alvo de aceitação: aproximadamente 16 kHz. Em outro terminal, baixe `/audio.wav?ms=1000` repetidamente durante pelo menos 2 minutos e observe se as leituras continuam variando, sem zeros persistentes nem reinicialização.
-
-Para repetir downloads por 2 min no PowerShell, use uma janela:
+**Passo 2 — rotas (1 min).** Conecte o notebook ao Wi-Fi `SENTINELA` (senha `sentinela123`; o Windows vai avisar "sem internet": é esperado). Depois:
 
 ```powershell
-1..120 | ForEach-Object { curl.exe -fsS "http://192.168.4.1/audio.wav?ms=1000" -o "$env:TEMP\sentinela.wav"; Start-Sleep -Milliseconds 100 }
+python tools\teste_fase1.py rotas
 ```
 
-Em outra janela, confira que o sensor continua ativo durante esse loop:
+Todas as linhas devem dar `[OK]`. O script salva `audio-teste.wav`: abra num player e confira se a sua voz soa natural (nem acelerada nem lenta). Durante o script, o **LED azul da placa** acende no `alerta` e pisca no `teste`.
+
+**Passo 3 — teste crítico: áudio estável com Wi-Fi (2 min).**
 
 ```powershell
-1..120 | ForEach-Object { curl.exe -fsS http://192.168.4.1/sensor; Start-Sleep -Seconds 1 }
+python tools\teste_fase1.py critico --minutos 2
 ```
 
-Após a aceitação inicial, mantenha o ESP32 ligado por 30 minutos; consulte `/status` a cada minuto e registre uptime e heap. Heap não deve cair continuamente e o uptime não deve zerar.
+Durante os 2 minutos: fale, bata palmas, fique em silêncio. O `rms` deve subir com o som e cair no silêncio, e `adc_min`/`adc_max` nunca devem ficar em 0. Ao final, todas as linhas devem dar `[OK]`. **Anote** `amostras_perdidas` e `intervalo_max_us`.
 
-## Resultados
+**Passo 4 — resistência (30 min).** Deixe o notebook parado, ainda ligado ao AP:
 
-Compilações verificadas no host; resultados de execução na placa continuam pendentes. Preencher as medições físicas após executar o roteiro:
+```powershell
+python tools\teste_fase1.py resistencia --minutos 30
+```
 
-| Verificação | Resultado medido |
+Deve passar sem reinício (o uptime nunca volta) e com heap estável. Gera um `resistencia_*.csv` (não versionado).
+
+**Passo 5 — queda de conexão (1 min).** Com `python tools\teste_fase1.py critico --minutos 1` rodando, aperte **EN/RST** da placa. O script deve mostrar falhas temporárias e voltar a ler sozinho depois que o AP reaparece; o Windows pode levar até ~15 s para reconectar ao AP. (O tratamento completo da queda é do dashboard, na Fase 2.)
+
+## Se algo falhar
+
+| Sintoma | Causa provável / ação |
 |---|---|
-| Compilação do teste de áudio (core 2.0.17) | Passou: 268.769 bytes de programa |
-| Compilação do firmware (core 2.0.17) | Passou: 773.189 bytes de programa; 110.692 bytes de globais |
-| Rotas e códigos HTTP | Pendente |
-| WAV: duração, taxa e reprodução | Pendente |
-| Taxa real com AP ativo | Pendente |
-| Sensor durante download contínuo | Pendente |
-| 30 min: reinicializações e heap | Pendente |
+| `adc_max` = 0 ou `rms` sempre 0 | Fio OUT↔GPIO34 solto, ou MAX9814 sem 3V3/GND. Rode `src/esp32/teste_audio` para isolar o problema. |
+| `clipping` true o tempo todo | Sinal alto demais: afaste o microfone ou confira se o GAIN está em VDD (40 dB) e não solto (60 dB). |
+| `fs_real_hz` bem abaixo de 16 000, ou `amostras_perdidas` subindo rápido | Amostragem instável. Mande-me as linhas `[saude]`; o plano B é 8 kHz (mudar o divisor/alarme do timer). |
+| Reinicia sozinho (uptime volta) | Copie o que o monitor serial mostra no reinício (`Guru Meditation`/`Brownout`). Brownout = cabo/porta USB fraca. |
+| `curl`/script sem conexão | O notebook saiu do AP `SENTINELA` (o Windows às vezes troca para uma rede com internet). Desative "conectar automaticamente" nas outras redes. |
+
+## Resultados medidos na placa (preencher)
+
+| Verificação | Resultado |
+|---|---|
+| Boot: AP visível em até 15 s | Pendente |
+| `teste_fase1.py rotas` | Pendente |
+| WAV soa natural no player | Pendente |
+| `fs_real_hz` com AP + download em loop | Pendente |
+| `amostras_perdidas` / `intervalo_max_us` após 2 min | Pendente |
+| Sem leituras zeradas durante o teste crítico | Pendente |
+| 30 min: reinícios / heap início → fim | Pendente |
+| Reconexão após RST | Pendente |

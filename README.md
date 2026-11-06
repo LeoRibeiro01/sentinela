@@ -14,11 +14,17 @@ Notebook (cliente HTTP) ⇄ ponto de acesso Wi-Fi do ESP32 ⇄ MAX9814 no GPIO 3
 
 ```text
 sentinela/
-├── docs/                      # API e roteiro/resultados das Fases 0 e 1
-├── src/esp32/
-│   ├── esp32_server/esp32_server.ino
-│   └── teste_audio/teste_audio.ino
-└── src/client/                # dashboard existente; fase 2 vai deixá-lo offline
+├── docs/                 # API.md, DECISOES.md, FASE_1_TESTES.md, diagramas
+├── src/
+│   ├── esp32/
+│   │   ├── esp32_server/ # firmware: esp32_server.ino (rede/rotas),
+│   │   │                 #   captura_audio.* (ADC a 16 kHz), atuadores.* (LEDs/buzzer)
+│   │   └── teste_audio/  # teste isolado do microfone
+│   ├── client/           # dashboard (será refeito offline na Fase 2)
+│   └── ai/               # serviço de IA (Fase 3)
+├── tools/                # teste_fase1.py (testes de aceitação do firmware)
+├── models/               # classificador treinado (Fase 3)
+└── data/                 # áudios de treino (não versionado)
 ```
 
 Diagramas: [arquitetura](docs/arquitetura.png) e [ligações](docs/esquematico.png). As fontes vetoriais SVG e o script de geração também estão em `docs/`.
@@ -51,23 +57,17 @@ Para testar somente o microfone, carregue `src/esp32/teste_audio/teste_audio.ino
 
 ## API do firmware (somente GET)
 
-Todas as respostas incluem CORS aberto e `Cache-Control: no-store`; erros são JSON UTF-8.
+Documentação completa em [docs/API.md](docs/API.md). Todas as respostas trazem CORS aberto e `Cache-Control: no-store`; os erros vêm em JSON (400/404).
 
-| Rota | Comportamento |
+| Rota | Função |
 |---|---|
-| `/` | Nome, versão e IP do sistema |
-| `/status` | `ok`, versão, uptime, taxa real de amostragem, heap, modo e estado/pinos do atuador |
-| `/sensor` | RMS, pico, nível (0–100), clipping e instante da última janela de ~250 ms |
-| `/audio.wav?ms=1000` | Trecho PCM 16-bit mono recente; `ms` entre 200 e 2000 |
-| `/atuador?estado=normal` | LED verde |
-| `/atuador?estado=alerta` | LED vermelho, buzzer e LED onboard |
-| `/atuador?estado=off` | Desliga todas as saídas |
-| `/atuador?estado=teste` | Sequência curta nas saídas físicas |
-| `/atuador?estado=normal&buzzer=1` | Controle opcional do buzzer em estado normal; `0` desliga |
-| `/config?modo=auto&limiar=45` | Ajusta modo e limiar automático (0–100, três janelas acima do limiar) |
-| `/config?modo=manual` | Retorna o controle dos atuadores ao modo manual |
+| `/status` | Uptime, taxa real de amostragem, heap, modo e estado do atuador |
+| `/sensor` | RMS, pico, nível 0–100 e clipping da última janela de ~250 ms |
+| `/audio.wav?ms=1000` | Trecho mais recente em WAV PCM 16-bit mono (200–2000 ms) |
+| `/atuador?estado=normal\|alerta\|off\|teste[&buzzer=0\|1]` | Comanda LEDs e buzzer |
+| `/config?modo=auto\|manual&limiar=0-100` | Modo automático local (fallback sem IA) |
 
-Exemplo no PowerShell: `curl.exe http://192.168.4.1/sensor`.
+Exemplo no PowerShell: `curl.exe http://192.168.4.1/sensor`. Teste automático de todas as rotas: `python tools\teste_fase1.py rotas` (roteiro completo em [docs/FASE_1_TESTES.md](docs/FASE_1_TESTES.md)).
 
 ## Progresso e validação
 
