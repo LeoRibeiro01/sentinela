@@ -29,7 +29,10 @@ const estado = {
   diagnosticando: false,
 };
 
+// Endereço do ESP32: ?esp32=... na URL (ex.: simulador) > salvo no navegador > padrão.
 function lerIpSalvo() {
+  const daUrl = new URLSearchParams(location.search).get('esp32');
+  if (daUrl && /^[\w.-]+(:\d{1,5})?$/.test(daUrl)) return daUrl;
   try { return localStorage.getItem(CHAVE_IP) || IP_PADRAO; } catch { return IP_PADRAO; }
 }
 

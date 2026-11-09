@@ -57,7 +57,7 @@ input, select {
 }
 .cartao { background: var(--cartao); border: 2px solid var(--borda); border-radius: 14px; padding: 1.25rem; min-width: 0; }
 .cartao-largo { grid-column: 1 / -1; }
-canvas { width: 100%; display: block; background: #0b1220; border-radius: 8px; margin-top: .75rem; }
+canvas { width: 100%; height: 170px; display: block; background: #0b1220; border-radius: 8px; margin-top: .75rem; }
 .legenda { color: var(--suave); font-size: .9rem; margin: .3rem 0 0; }
 
 .nivel-linha { display: flex; gap: 1.25rem; align-items: center; }
@@ -122,4 +122,6 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .historico { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; padding: 0; margin: .5rem 0 0; }
 .historico li { background: #0b1220; border: 1px solid var(--borda); border-radius: 6px; padding: .15rem .5rem; font-size: .85rem; }
 audio { width: 100%; margin-top: .75rem; }
+.audio-graficos { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .rodape { text-align: center; color: var(--suave); padding: 1rem; font-size: .95rem; }
+#grafico-historico { height: 200px; }

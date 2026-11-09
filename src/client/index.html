@@ -72,6 +72,19 @@
       <p id="msg-comando" class="mensagem" role="status"></p>
     </section>
 
+    <!-- Sistema: dados de saúde do ESP32 -->
+    <section class="cartao" id="cartao-sistema">
+      <h2>Sistema</h2>
+      <dl class="metricas metricas-coluna">
+        <div><dt>Ligado há</dt><dd id="uptime">--</dd></div>
+        <div><dt>Taxa de amostragem</dt><dd id="taxa">--</dd></div>
+        <div><dt>Memória livre</dt><dd id="heap">--</dd></div>
+        <div><dt>Amostras perdidas</dt><dd id="perdidas">--</dd></div>
+        <div><dt>Clientes no Wi-Fi</dt><dd id="clientes">--</dd></div>
+        <div><dt>Última resposta</dt><dd id="ultima-resposta">--</dd></div>
+      </dl>
+    </section>
+
     <!-- IA: diagnóstico de 5 s e resultado ao vivo -->
     <section class="cartao cartao-largo" id="cartao-ia">
       <h2>Diagnóstico por IA</h2>
@@ -113,31 +126,21 @@
     </section>
 
     <!-- Áudio: forma de onda e espectro do último trecho -->
-    <section class="cartao" id="cartao-audio">
+    <section class="cartao cartao-largo" id="cartao-audio">
       <h2>Último trecho de áudio</h2>
       <div class="botoes">
         <button id="botao-capturar" class="btn">Capturar 1 s</button>
         <label class="inline"><input type="checkbox" id="opcao-auto-captura"> a cada 5 s</label>
       </div>
-      <canvas id="grafico-onda" height="140" aria-label="Forma de onda"></canvas>
-      <p class="legenda">Forma de onda (1 s)</p>
-      <canvas id="grafico-espectro" height="140" aria-label="Espectro de frequência"></canvas>
-      <p class="legenda">Espectro 0–4 kHz · pico em <span id="freq-pico">--</span></p>
+      <div class="audio-graficos">
+        <div><canvas id="grafico-onda" height="160" aria-label="Forma de onda"></canvas>
+          <p class="legenda">Forma de onda (1 s)</p></div>
+        <div><canvas id="grafico-espectro" height="160" aria-label="Espectro de frequência"></canvas>
+          <p class="legenda">Espectro 0–4 kHz · pico em <span id="freq-pico">--</span></p></div>
+      </div>
       <audio id="player" controls></audio>
     </section>
 
-    <!-- Sistema: dados de saúde do ESP32 -->
-    <section class="cartao" id="cartao-sistema">
-      <h2>Sistema</h2>
-      <dl class="metricas metricas-coluna">
-        <div><dt>Ligado há</dt><dd id="uptime">--</dd></div>
-        <div><dt>Taxa de amostragem</dt><dd id="taxa">--</dd></div>
-        <div><dt>Memória livre</dt><dd id="heap">--</dd></div>
-        <div><dt>Amostras perdidas</dt><dd id="perdidas">--</dd></div>
-        <div><dt>Clientes no Wi-Fi</dt><dd id="clientes">--</dd></div>
-        <div><dt>Última resposta</dt><dd id="ultima-resposta">--</dd></div>
-      </dl>
-    </section>
   </main>
 
   <footer class="rodape">SENTINELA · PUCPR · Apoio à decisão — não substitui um mecânico.</footer>
