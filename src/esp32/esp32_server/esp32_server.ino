@@ -7,7 +7,7 @@
 // este arquivo só faz rede: recebe pedidos, valida parâmetros e monta respostas.
 // O WebServer do Arduino atende um cliente por vez, então os handlers são curtos.
 #include <WiFi.h>
-#include <WebServer.h>
+#include "servidor_rapido.h"  // WebServer que descarta conexões paradas (ver o arquivo)
 #include "captura_audio.h"
 #include "atuadores.h"
 
@@ -18,9 +18,10 @@ static const IPAddress MASCARA_AP(255, 255, 255, 0);
 static const char* VERSAO = "1.0";
 static constexpr uint32_t INTERVALO_LOG_MS = 10000;  // log de saúde na Serial
 
-WebServer servidor(80);
+ServidorRapido servidor(80);
 static uint32_t ultimaJanelaAvaliada = 0;
 static uint32_t ultimoLogMs = 0;
+static volatile uint32_t voltasPorSegundo = 0;  // ritmo da tarefa principal (diagnóstico)
 
 // ---------- Utilidades de resposta ----------
 
@@ -65,12 +66,12 @@ static void rotaStatus() {
   snprintf(json, sizeof(json),
            "{\"ok\":true,\"versao\":\"%s\",\"uptime_s\":%lu,\"fs_real_hz\":%lu,\"heap_livre\":%lu,"
            "\"heap_minimo\":%lu,\"modo\":\"%s\",\"limiar\":%u,\"atuador\":%s,"
-           "\"amostras_perdidas\":%lu,\"intervalo_max_us\":%lu,\"clientes_wifi\":%u}",
+           "\"amostras_perdidas\":%lu,\"intervalo_max_us\":%lu,\"clientes_wifi\":%u,\"laco_hz\":%lu}",
            VERSAO, (unsigned long)(millis() / 1000), (unsigned long)taxaRealHz(),
            (unsigned long)ESP.getFreeHeap(), (unsigned long)ESP.getMinFreeHeap(),
            modoAutoAtivo() ? "auto" : "manual", limiarAuto(), atuador,
            (unsigned long)amostrasPerdidas(), (unsigned long)intervaloMaximoUs(),
-           WiFi.softAPgetStationNum());
+           WiFi.softAPgetStationNum(), (unsigned long)voltasPorSegundo);
   responderJson(200, json);
 }
 
@@ -211,11 +212,12 @@ static void registrarSaude() {
   ultimoLogMs = millis();
   LeituraSensor l = lerSensor();
   Serial.printf("[saude] uptime=%lus heap=%lu heap_min=%lu fs=%luHz perdidas=%lu int_max=%luus "
-                "rms=%u adc=[%u..%u] clientes=%u estado=%s\n",
+                "rms=%u adc=[%u..%u] clientes=%u estado=%s laco=%luHz\n",
                 (unsigned long)(millis() / 1000), (unsigned long)ESP.getFreeHeap(),
                 (unsigned long)ESP.getMinFreeHeap(), (unsigned long)taxaRealHz(),
                 (unsigned long)amostrasPerdidas(), (unsigned long)intervaloMaximoUs(),
-                l.rms, l.adcMin, l.adcMax, WiFi.softAPgetStationNum(), nomeEstado(estadoAtual()));
+                l.rms, l.adcMin, l.adcMax, WiFi.softAPgetStationNum(), nomeEstado(estadoAtual()),
+                (unsigned long)voltasPorSegundo);
 }
 
 void setup() {
@@ -234,20 +236,43 @@ void setup() {
   servidor.begin();
 
   if (!iniciarCaptura()) Serial.println("ERRO: falha ao criar a tarefa de captura");
+  // Pilha de 8 KB (igual à do loop() do Arduino); prioridade 1, abaixo do Wi-Fi.
+  xTaskCreatePinnedToCore(tarefaPrincipal, "principal", 8192, nullptr, 1, nullptr, 0);
   Serial.printf("Servidor HTTP pronto. Heap livre: %lu bytes\n", (unsigned long)ESP.getFreeHeap());
 }
 
-void loop() {
-  servidor.handleClient();
+// Tarefa principal: servidor HTTP, modo auto, sequência de teste e log de saúde.
+// Roda no NÚCLEO 0, longe da captura de áudio (núcleo 1). Medido na placa em 09/11:
+// no núcleo 1, a captura a 16 kHz (prioridade maior) deixava só ~22 voltas/s para
+// o loop(); cada pedido HTTP precisava de várias voltas e expirava no navegador.
+// No núcleo 0 ela divide a CPU só com o Wi-Fi, que tem bastante folga.
+// Por ser a ÚNICA tarefa que mexe nos atuadores, não há condição de corrida.
+static void tarefaPrincipal(void*) {
+  uint32_t voltas = 0, inicioContagemMs = millis();
+  for (;;) {
+    servidor.handleClient();
 
-  // O modo auto é avaliado aqui (e não na tarefa de áudio) para que só esta
-  // tarefa mexa nos atuadores, evitando conflito com os comandos HTTP.
-  LeituraSensor l = lerSensor();
-  if (l.numeroJanela != ultimaJanelaAvaliada) {
-    ultimaJanelaAvaliada = l.numeroJanela;
-    processarJanelaAuto(l.nivel);
+    // O modo auto é avaliado aqui (e não na tarefa de áudio) para que só esta
+    // tarefa mexa nos atuadores, evitando conflito com os comandos HTTP.
+    LeituraSensor l = lerSensor();
+    if (l.numeroJanela != ultimaJanelaAvaliada) {
+      ultimaJanelaAvaliada = l.numeroJanela;
+      processarJanelaAuto(l.nivel);
+    }
+    atualizarAtuadores();
+    registrarSaude();
+
+    voltas++;
+    if (millis() - inicioContagemMs >= 1000) {
+      voltasPorSegundo = voltas;
+      voltas = 0;
+      inicioContagemMs = millis();
+    }
+    vTaskDelay(1);  // cede a CPU (Wi-Fi e a tarefa ociosa, vigiada pelo watchdog)
   }
-  atualizarAtuadores();
-  registrarSaude();
-  delay(1);  // cede CPU às tarefas de menor prioridade do núcleo 1
+}
+
+void loop() {
+  // Todo o trabalho está em tarefaPrincipal (núcleo 0); o loop() do Arduino só dorme.
+  vTaskDelay(pdMS_TO_TICKS(1000));
 }
