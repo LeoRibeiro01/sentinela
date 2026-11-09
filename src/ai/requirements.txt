@@ -1,0 +1,9 @@
+# Dependências do serviço de IA (Python 3.11, Windows, CPU). Versões fixas e testadas.
+# Instalação: py -3.11 -m venv .venv ; .venv\Scripts\python -m pip install -r src\ai\requirements.txt
+tensorflow==2.21.0
+numpy==2.4.6
+scikit-learn==1.9.1
+scipy==1.17.1
+soundfile==0.14.0
+joblib==1.6.0
+imageio-ffmpeg==0.8.1  # só para prepare_dataset.py ler .m4a; não é usado ao vivo

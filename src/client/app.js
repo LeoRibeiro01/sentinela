@@ -332,6 +332,21 @@ function mostrarIaOnline(online, texto) {
   $('botao-diagnosticar').disabled = !online || estado.diagnosticando;
   $('opcao-demo').disabled = !online;
   $('opcao-ia-atuador').disabled = !online;
+  $('botao-calibrar').disabled = !online;
+}
+
+// Mede o ruído de fundo do microfone (3 s em silêncio) e ajusta o limiar de "sinal fraco" da IA.
+async function calibrarSilencio() {
+  $('botao-calibrar').disabled = true;
+  $('info-calibracao').textContent = 'Faça silêncio... medindo 3 s';
+  try {
+    const r = await buscarJson(`${BASE_IA}/api/calibrar`, 10000);
+    $('info-calibracao').textContent = `Limiar ajustado para ${r.limiar_silencio} (ruído medido: ${r.rms_medidos.join(', ')})`;
+  } catch (erro) {
+    $('info-calibracao').textContent = `Calibração falhou: ${erro.message}`;
+  } finally {
+    $('botao-calibrar').disabled = !estado.iaOnline;
+  }
 }
 
 async function configurarIa(parametros) {
@@ -452,6 +467,7 @@ function iniciar() {
   mostrarIaOnline(false);
   $('botao-capturar').addEventListener('click', capturarAudio);
   $('botao-diagnosticar').addEventListener('click', diagnosticar);
+  $('botao-calibrar').addEventListener('click', calibrarSilencio);
   $('opcao-demo').addEventListener('change', (e) => configurarIa(`demo=${e.target.checked ? 1 : 0}`));
   $('opcao-ia-atuador').addEventListener('change', (e) => configurarIa(`ia_atuador=${e.target.checked ? 1 : 0}`));
   setInterval(() => { if ($('opcao-auto-captura').checked && estado.conectado) capturarAudio(); }, 5000);

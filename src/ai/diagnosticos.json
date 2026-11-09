@@ -1,0 +1,84 @@
+{
+  "_comentario": "Base de conhecimento exibida no cartão de diagnóstico. Texto conservador; REVISAR PELA EQUIPE antes da apresentação. Chaves = classes do modelo; as que começam com '_' são situações especiais.",
+  "_aviso": "Apoio à decisão: estimativa de um modelo de IA a partir do som. Não substitui a avaliação de um mecânico.",
+  "normal": {
+    "nome": "Motor normal",
+    "titulo": "Som de motor dentro do normal",
+    "causas_provaveis": [
+      "O modelo não reconheceu padrões acústicos de batida de pino, falha de ignição ou ruído mecânico anormal."
+    ],
+    "o_que_verificar": [
+      "Mantenha a manutenção preventiva em dia (óleo, filtros, velas, correias).",
+      "Se você percebe algum sintoma (vibração, perda de potência, luz no painel), procure um mecânico mesmo assim: nem toda falha produz som característico."
+    ],
+    "urgencia": "baixa"
+  },
+  "falha_batida_pino": {
+    "nome": "Batida de pino",
+    "titulo": "Possível batida de pino (detonação)",
+    "causas_provaveis": [
+      "Combustível de octanagem inadequada ou adulterado.",
+      "Ponto de ignição adiantado ou sensor de detonação com defeito.",
+      "Acúmulo de carvão na câmara de combustão.",
+      "Motor superaquecendo (arrefecimento deficiente)."
+    ],
+    "o_que_verificar": [
+      "Abasteça em posto de confiança com o combustível recomendado pelo fabricante.",
+      "Observe a temperatura do motor no painel e o nível do líquido de arrefecimento.",
+      "Faça uma leitura com scanner OBD-II (códigos da família P0325–P0334 indicam o sensor de detonação).",
+      "Evite acelerações fortes e subidas com carga até a inspeção: detonação persistente pode danificar pistões."
+    ],
+    "urgencia": "media"
+  },
+  "falha_ignicao": {
+    "nome": "Falha de ignição",
+    "titulo": "Possível falha de ignição (motor \"falhando\")",
+    "causas_provaveis": [
+      "Velas de ignição desgastadas ou com folga incorreta.",
+      "Bobina ou cabos de vela com defeito.",
+      "Bico injetor sujo ou entupido.",
+      "Entrada de ar falso ou baixa compressão em um cilindro."
+    ],
+    "o_que_verificar": [
+      "Leitura com scanner OBD-II: códigos P0300–P0304 indicam falha de ignição e o cilindro afetado.",
+      "Inspecione velas, cabos e bobinas.",
+      "Se a luz de injeção estiver PISCANDO, reduza o uso e procure um mecânico logo: pode danificar o catalisador."
+    ],
+    "urgencia": "media"
+  },
+  "falha_outros": {
+    "nome": "Ruído mecânico anormal",
+    "titulo": "Ruído mecânico anormal",
+    "causas_provaveis": [
+      "Correia, tensor ou polia com desgaste (chiado/rangido).",
+      "Rolamento com folga (zumbido que muda com a rotação ou a velocidade).",
+      "Escapamento solto ou furado.",
+      "Componentes de suspensão ou direção com folga.",
+      "Tuchos/válvulas fazendo ruído (\"tec-tec\")."
+    ],
+    "o_que_verificar": [
+      "Tente localizar a origem: o ruído muda com a rotação (motor) ou com a velocidade (rodas/suspensão)?",
+      "Inspecione visualmente correias, polias e fixações do escapamento.",
+      "Leve a um mecânico e descreva quando o ruído aparece. Esta categoria agrupa falhas variadas e não aponta uma peça específica."
+    ],
+    "urgencia": "media"
+  },
+  "_nao_carro": {
+    "titulo": "Som não reconhecido como motor de carro",
+    "causas_provaveis": ["O som captado parece ser outra coisa (ex.: fala, música, ambiente)."],
+    "o_que_verificar": ["Aproxime o microfone do motor em funcionamento e repita.", "Evite conversar perto do microfone durante a captura."],
+    "urgencia": "baixa"
+  },
+  "_inconclusivo": {
+    "titulo": "Diagnóstico inconclusivo",
+    "causas_provaveis": ["Nenhuma classe atingiu a confiança mínima; o modelo não vai fingir certeza."],
+    "o_que_verificar": ["Repita a captura com o microfone mais perto do motor e com menos ruído ao redor.", "Se o resultado continuar inconclusivo e houver sintomas, procure um mecânico."],
+    "urgencia": "baixa"
+  },
+  "_sinal_fraco": {
+    "titulo": "Sinal fraco",
+    "causas_provaveis": ["Quase todo o áudio captado estava em silêncio."],
+    "o_que_verificar": ["Aproxime o microfone do motor (ou do alto-falante) e repita.", "Confira se o motor está ligado."],
+    "urgencia": "baixa"
+  }
+}

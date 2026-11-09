@@ -1,0 +1,50 @@
+{
+  "_comentario": "Como cada pasta de data/raw/<fonte>/ vira uma classe. Lido por prepare_dataset.py. Regras são avaliadas em ordem e a PRIMEIRA que pega um arquivo vence. Fontes sem regra explícita usam 'palavras_chave'.",
+  "classes_diagnostico": ["normal", "falha_batida_pino", "falha_ignicao"],
+  "classes_somente_porteiro": ["falha_outros"],
+  "_classes_somente_porteiro": "Classes com poucos dados: entram no treino como exemplos de 'é carro', mas não viram diagnóstico. Para promover uma delas, mova-a para classes_diagnostico e retreine.",
+  "classe_nao_carro": "nao_carro",
+  "fontes": {
+    "kwerimoto": {
+      "tipo": "manifesto_kwerimoto",
+      "rotulos": {"healthy": "normal", "engine_knock": "falha_batida_pino", "misfire": "falha_ignicao"}
+    },
+    "amrrashed": {
+      "tipo": "regras",
+      "_comentario": "Os WAVs de Datasetver2/*_segmented_audio estão CORROMPIDOS (ruído branco) e não são usados. Usamos as gravações originais (.m4a/.mp3). Veículos que não são carro (ônibus, moto, trem, caminhão, buzina, batidas) ficam de fora por serem ambíguos.",
+      "regras": [
+        {"glob": "Datasets/DB1/Engine Misfire/*", "classe": "falha_ignicao"},
+        {"glob": "Datasets/DB1/*/*.m4a", "classe": "falha_outros"},
+        {"glob": "Datasets/DB2/Gunshot/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/ambulance siren/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/fire truck siren/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/police car siren/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/drilling/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/bear/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/cats/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/dog/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/horse/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/lions/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/monkey/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/mouse/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/sheep/*", "classe": "nao_carro"},
+        {"glob": "Datasets/DB2/wolf/*", "classe": "nao_carro"}
+      ]
+    },
+    "own": {"tipo": "pastas", "_comentario": "data/own/<classe>/*.wav gravados com record.py; o nome da pasta é a classe"}
+  },
+  "ruido_sintetico": {
+    "_comentario": "Gerado por prepare_dataset.py como 'nao_carro': chiado/zumbido não pode virar 'carro com falha'.",
+    "tipos": ["branco", "rosa", "marrom", "zumbido_60hz"],
+    "clipes_por_tipo": 12,
+    "segundos": 5
+  },
+  "palavras_chave": {
+    "_comentario": "Ordem importa: a primeira classe cuja palavra aparece no caminho (minúsculo) vence. Usado para os datasets do Kaggle.",
+    "falha_ignicao": ["misfire", "falha_ignicao", "falha de ignicao"],
+    "falha_batida_pino": ["knock", "detonation", "pinging", "batida"],
+    "nao_carro": ["nao_carro", "speech", "voice", "music", "animal", "dog", "cat", "bird", "siren", "rain", "background", "noise_only"],
+    "normal": ["normal", "healthy", "good", "ok_engine", "no_fault", "nofault", "saudavel"],
+    "falha_outros": ["bearing", "belt", "squeal", "exhaust", "rattle", "tick", "lifter", "transmission", "fault", "fail", "faulty", "bad", "worn", "broken", "problem", "abnormal", "leak", "rod", "pulley", "starter", "brake", "falha", "defeito"]
+  }
+}

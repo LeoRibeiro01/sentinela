@@ -5,6 +5,7 @@ biblioteca padrão do Python.
 
   python tools/mock_esp32.py                       # tom de 120 Hz + ruído (porta 8080)
   python tools/mock_esp32.py --wav-dir <pasta>     # toca os WAVs da pasta em loop
+  python tools/mock_esp32.py --wav-dir <pasta> --padrao "cats*.wav"   # só alguns arquivos
   python tools/mock_esp32.py --porta 8081 --silencio
 
 No dashboard, use o endereço  127.0.0.1:8080 .  Para simular a queda do ESP32,
@@ -35,10 +36,10 @@ playlist = []  # amostras int16 concatenadas dos WAVs (modo --wav-dir)
 args = None
 
 
-def carregar_wavs(pasta):
+def carregar_wavs(pasta, padrao="*.wav"):
     """Lê WAVs PCM 16-bit; usa só o 1º canal. Ignora (com aviso) outros formatos."""
     amostras = []
-    arquivos = sorted(Path(pasta).rglob("*.wav"))[:200]
+    arquivos = sorted(Path(pasta).rglob(padrao))[:200]
     for arq in arquivos:
         try:
             with wave.open(str(arq)) as w:
@@ -199,11 +200,12 @@ def main():
     p = argparse.ArgumentParser(description="Simulador do ESP32 SENTINELA")
     p.add_argument("--porta", type=int, default=8080)
     p.add_argument("--wav-dir", help="pasta com WAVs 16 kHz para tocar em loop")
+    p.add_argument("--padrao", default="*.wav", help='filtro de arquivos, ex.: "cats*.wav"')
     p.add_argument("--silencio", action="store_true", help="só ruído baixo (testa 'sinal fraco')")
     args = p.parse_args()
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if args.wav_dir:
-        playlist = carregar_wavs(args.wav_dir)
+        playlist = carregar_wavs(args.wav_dir, args.padrao)
         if not playlist:
             sys.exit("ERRO: nenhum WAV utilizável na pasta.")
     servidor = ThreadingHTTPServer(("0.0.0.0", args.porta), Handler)

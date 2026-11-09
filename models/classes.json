@@ -1,0 +1,13 @@
+{
+  "classes": [
+    "normal",
+    "falha_batida_pino",
+    "falha_ignicao"
+  ],
+  "porteiro": [
+    "carro",
+    "nao_carro"
+  ],
+  "limiar_confianca": 60,
+  "treinado_em": "2026-11-08 23:28"
+}
