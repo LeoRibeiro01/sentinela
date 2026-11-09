@@ -26,31 +26,30 @@ Observações:
 - **Problema no download:** o repositório tem 52 arquivos chamados literalmente `...` (1 byte cada, marcadores sem áudio). Esse nome é inválido no Windows e aborta o `git checkout`. Os arquivos foram extraídos com `git archive` + extrator Python que **pula só esses 52**. Todos os outros 1079 arquivos estão presentes. A pasta não é um repositório git.
 - Licença: não declarada; o README diz que o material foi montado de datasets públicos e vídeos do YouTube.
 
-Onde está cada coisa:
+### ⚠ Os WAVs segmentados estão corrompidos
 
-| Pasta | Conteúdo | Formato |
+Os arquivos de `Datasetver2/*_segmented_audio/` (inclusive os extraídos dos `.zip`) têm cabeçalho WAV válido, mas o conteúdo é **ruído branco em escala cheia**: autocorrelação de passo 1 ≈ 0,00 e pico 1,0, enquanto áudio real fica entre 0,8 e 0,97. A única exceção é "Emergency Vehicles". O problema foi descoberto porque o YAMNet classificava gravações de gato como "chuva/spray". **Não usamos esses arquivos.** O `prepare_dataset.py` descarta automaticamente qualquer trecho com esse padrão.
+
+### O que usamos (gravações originais)
+
+| Pasta | Conteúdo | Uso |
 |---|---|---|
-| `Datasets/DB1/<falha>/` | **Falhas veiculares, originais**: 27 pastas, quase todas com **1 gravação** cada (31 no total) | `.m4a` (precisa de ffmpeg) |
-| `Datasetver2/DB1__segmented_audio/<categoria>/` | **As mesmas falhas, segmentadas** em clipes de ~2,5 s (175 clipes; extraídos de `DB1.zip`, que continua lá) | WAV 16 kHz, a maioria **estéreo** |
-| `Datasets/DB2/<classe>/` | Sons de estrada/animais/sirenes, originais (22 classes, 2–8 arquivos cada) | `.m4a`/`.mp3` |
-| `Datasetver2/DB2_segmented_audio/` | `animals` (650), `Vehicles and transportation` (246), `Emergency Vehicles` (11) segmentados; mais 3 `.zip` não extraídos (construção, armas, clima) | WAV |
-| `codes/` | Scripts Python do autor. **Não executamos.** | `.py` |
+| `Datasets/DB1/<falha>/*.m4a` | 30 gravações originais de falhas (≈ 3,8 min; várias de 1–2 s) | `Engine Misfire` → `falha_ignicao`; demais → `falha_outros` (só para o porteiro "é carro") |
+| `Datasets/DB2/<classe>/*` | Originais de animais, sirenes, tiros, furadeira (≈ 14 min, 66 gravações) | `nao_carro` |
+| `Datasets/DB2/{bike,bus,motorcycle,train,truck,car horn,truck horn,car crashes}` | Veículos que não são carro | **Ignorados** (ambíguos para o porteiro) |
+| `codes/` | Scripts Python do autor | **Não executados** |
 
-Classes de falha segmentadas (`Datasetver2/DB1__segmented_audio/`):
+Os `.m4a` são lidos com o ffmpeg empacotado no `imageio-ffmpeg` (só na preparação).
 
-| Categoria | Clipes | Duração | Gravações de origem |
-|---|---:|---:|---:|
-| ENGINE AND POWERTRAIN ISSUES | 61 | 152 s | 14 |
-| SUSPENSION AND STEERING ISSUES | 39 | 98 s | 8 |
-| General Vehicle Sounds (34 clipes "car normal noise" + 4 "videoplayback" de conteúdo não verificado) | 38 | 95 s | 3 |
-| EXHAUST AND FUEL SYSTEM ISSUE | 16 | 40 s | 4 |
-| Belt and Accessory Issues | 12 | 30 s | 3 |
-| Miscellaneous Issues | 5 | 12 s | 1 |
-| Braking System Issues | 4 | 10 s | 1 |
-
-**Atenção:** é pouco áudio (≈ 7 min no total) e de poucas gravações. Cada categoria mistura falhas diferentes (ex.: "Engine and Powertrain" contém rolamento de roda, transmissão, biela...). Os segmentos de uma mesma gravação **precisam ficar todos no treino ou todos na validação** (o nome antes de `_segment_N` identifica a gravação). Serve como reforço ou para o modo demonstração, mas não sustenta sozinho um classificador por categoria.
+**Atenção:** é pouco áudio de falhas mecânicas, e muito variado. Por isso `falha_outros` não virou classe de diagnóstico (ver `docs/DECISOES.md`).
 
 ## 3. Kaggle (baixados manualmente pela equipe)
 
 - `data/raw/ai_mechanic/`: pendente.
 - `data/raw/car_diagnostics/`: pendente.
+
+Basta extrair cada dataset na sua pasta e rodar `prepare_dataset.py`. Sem regra explícita em `src/ai/fontes.json`, as pastas são mapeadas por **palavras-chave** (`normal`/`healthy` → `normal`, `knock` → `falha_batida_pino`, `misfire` → `falha_ignicao`, etc.). O relatório lista o que foi usado, ignorado e descartado por corrupção: **confira antes de treinar**. Para promover uma nova falha a classe de diagnóstico, adicione-a em `classes_diagnostico` (e em `src/ai/diagnosticos.json`) e retreine.
+
+## 4. Gravações da equipe — `data/own/<classe>/`
+
+Geradas por `python src/ai/record.py --classe <classe> --segundos 60`. Cada arquivo é uma gravação (um grupo) e entra automaticamente no próximo `prepare_dataset.py`.

@@ -89,3 +89,59 @@ curl.exe http://192.168.4.1/status
 curl.exe "http://192.168.4.1/atuador?estado=alerta&buzzer=0"
 curl.exe "http://192.168.4.1/audio.wav?ms=1000" -o trecho.wav
 ```
+
+---
+
+# API do serviço de IA (`src/ai/server.py`, `http://localhost:5000`)
+
+Roda no notebook. Também só aceita GET, com CORS aberto e `Cache-Control: no-store`. Se estiver fora do ar, o dashboard mostra "IA: OFFLINE" e o resto continua funcionando.
+
+## `GET /` (e `/app.js`, `/style.css`)
+
+Serve o dashboard (`src/client`). Aceita `?esp32=ENDERECO` para escolher o ESP32 (ex.: `?esp32=127.0.0.1:8080` com o simulador).
+
+## `GET /api/resultado`
+
+Estado ao vivo (análise de 1,5 s de áudio a cada ~1 s).
+
+```json
+{"ok":true,"modelo":true,"classes":["normal","falha_batida_pino","falha_ignicao"],
+ "esp32":"192.168.4.1","demo":false,"ia_atuador":false,"limiar_silencio":0.004,"limiar_confianca":60,
+ "esp32_ok":true,"estado_suave":"normal","diagnosticando":false,
+ "ao_vivo":{"texto":"Motor normal","status":"ok","confianca":79,"carro_prob":99,"rms_bruto":0.06,
+            "top3":[{"classe":"normal","nome":"Motor normal","prob":79}, ...]},
+ "historico":[{"hora":"23:29:17","texto":"Batida de pino"}, ...]}
+```
+
+`ao_vivo.status`: `ok` · `sinal_fraco` · `nao_carro` · `easter_egg` (modo demo) · `sem_modelo` · `esp32_offline`.
+`estado_suave`: decisão por maioria de 3 dos últimos 5 votos confiantes (`normal`/`alerta`). Com `ia_atuador` ligado, é enviada ao `/atuador` **somente quando muda**.
+
+## `GET /api/diagnostico?segundos=5`
+
+Captura `segundos` janelas de 1 s (1 a 10), descarta as silenciosas, analisa o restante junto e responde em ~6 s.
+
+```json
+{"status":"ok","top":"falha_batida_pino","top_nome":"Batida de pino","confianca":85,"carro_prob":99,
+ "som_detectado":"motor","janelas_validas":5,"janelas_total":5,"atuador":"alerta",
+ "classes":[{"classe":"falha_batida_pino","nome":"Batida de pino","prob":85}, ...],
+ "diagnostico":{"titulo":"Possível batida de pino (detonação)","causas_provaveis":["..."],
+                "o_que_verificar":["..."],"urgencia":"media","aviso":"Apoio à decisão: ..."}}
+```
+
+| `status` | Quando | Atuador |
+|---|---|---|
+| `ok` | confiança do 1º colocado ≥ limiar (padrão 60%) | `alerta` se não for `normal`; senão `normal` |
+| `inconclusivo` | confiança abaixo do limiar (o sistema não finge certeza) | `normal` |
+| `sinal_fraco` | menos de 40% das janelas com som ("aproxime o microfone") | inalterado |
+| `nao_carro` | o porteiro ou o veto do YAMNet dizem que não é motor de carro | inalterado |
+| `erro` | ESP32 não respondeu ou modelo ausente (`erro` traz o motivo) | inalterado |
+
+409 se já houver um diagnóstico em andamento; 400 se `segundos` estiver fora de 1–10.
+
+## `GET /api/config`
+
+Parâmetros opcionais: `esp32=ENDERECO`, `demo=0|1` (easter eggs de animais), `ia_atuador=0|1` (IA comanda os LEDs ao vivo), `limiar_silencio=0..0.5` (RMS), `limiar_confianca=0..100`. Responde com a configuração atual.
+
+## `GET /api/calibrar`
+
+Mede 3 s em silêncio e ajusta `limiar_silencio` para 2,5× o maior RMS medido (mínimo 0,002). Responde `{"ok":true,"rms_medidos":[...],"limiar_silencio":N}`.
