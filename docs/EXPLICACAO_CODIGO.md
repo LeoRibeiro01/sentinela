@@ -138,7 +138,7 @@ Visão geral em uma frase: *o ESP32 amostra o microfone a 16 kHz e serve os dado
 **Fluxo.**
 1. Calcula os embeddings de todos os trechos (com cache em disco). No treino, também de uma cópia aumentada.
 2. **Porteiro**: regressão logística `carro × nao_carro`.
-3. **Diagnóstico**: regressão logística em 3 classes.
+3. **Diagnóstico**: regressão logística em 5 classes (normal, batida de pino, ignição, correia, tucho).
 4. Para cada um, escolhe **C** pela F1-macro na **validação**, retreina em treino+validação e avalia no **teste**.
 5. Escolhe o **limiar de confiança** na validação, simulando o botão (grupos de 5 s).
 6. Roda o teste de robustez com áudio degradado e o `real_test` (knock real).
@@ -146,7 +146,7 @@ Visão geral em uma frase: *o ESP32 amostra o microfone a 16 kHz e serve os dado
 
 ### `server.py` — serviço local
 
-**Fluxo.** Thread `laco_ao_vivo()`: a cada ~1 s baixa 1,5 s de áudio e analisa. Suaviza com maioria de 3 em 5 e, se "IA comanda os LEDs" estiver ligado, chama `/atuador` quando o estado muda. As rotas `/api/*` atendem o dashboard. `diagnosticar()` captura 5 janelas de 1 s, descarta as silenciosas, **concatena** e analisa. Depois monta o cartão a partir de `diagnosticos.json` e comanda o atuador. `calibrar_silencio()` ajusta o limiar de "sinal fraco".
+**Fluxo.** Thread `laco_ao_vivo()`: a cada ~1 s baixa 1 s de áudio, guarda os últimos 5 s e analisa tudo junto (silêncio zera a memória). Suaviza com maioria de 3 em 5 e, se "IA comanda os LEDs" estiver ligado, chama `/atuador` quando o estado muda. As rotas `/api/*` atendem o dashboard. `diagnosticar()` captura 5 janelas de 1 s, descarta as silenciosas, **concatena** e analisa. Depois monta o cartão a partir de `diagnosticos.json` e comanda o atuador. `calibrar_silencio()` ajusta o limiar de "sinal fraco".
 
 ### `record.py` — coleta de dados próprios
 
@@ -160,7 +160,7 @@ Baixa 1 s por segundo do ESP32, junta tudo e salva em `data/own/<classe>/`. Na p
 1. *O que é o YAMNet e por que usá-lo?* Uma rede neural do Google treinada em ~2 milhões de áudios do YouTube (AudioSet, 521 classes). Usamos a penúltima camada (**embedding** de 1024 números) como "resumo do som" e treinamos em cima um classificador simples (regressão logística). Isso é *transfer learning*: com poucos dados, aproveitamos o que a rede já aprendeu sobre sons.
 2. *Como vocês garantem que a métrica não está inflada?* (a) A divisão é **por gravação**: trechos da mesma gravação nunca ficam em treino e teste. (b) O hiperparâmetro e o limiar são escolhidos na **validação**; o teste só é olhado no fim. (c) Reportamos também um teste com áudio degradado e um teste com knock real (AudioSet) que nunca entrou no treino. (d) Mostramos o acerto **por fonte**.
 3. *Como o sistema sabe que o som é de carro?* Duas camadas. Primeiro, um **porteiro** treinado com exemplos de carro e de não-carro (animais, sirenes, tiros, furadeira, ruído sintético). Depois, um **veto** usando as próprias classes do YAMNet para fala, música e animais, que não temos como negativos treinados. Só se passar pelos dois o diagnóstico acontece.
-4. *O que acontece quando o modelo não tem certeza?* Se a maior probabilidade ficar abaixo de 60%, o resultado é "**inconclusivo**" e o sistema pede para repetir. Ele não finge certeza. Esse limiar foi escolhido na validação: no teste, ele responde ~79% das vezes com ~86% de acerto.
+4. *O que acontece quando o modelo não tem certeza?* Se a maior probabilidade ficar abaixo de 60%, o resultado é "**inconclusivo**" e o sistema pede para repetir. Ele não finge certeza. Esse limiar foi escolhido na validação: no teste, ele responde ~76% das vezes com ~89% de acerto.
 5. *Qual foi o maior problema encontrado nos dados?* Os WAVs segmentados de um dos datasets eram **ruído branco** (corrompidos). A primeira versão do modelo parecia ótima numa classe (100%), mas tinha aprendido "ruído". Descobrimos ao ver o YAMNet classificar um gato como "chuva", confirmamos pela autocorrelação, trocamos pelas gravações originais e criamos um filtro automático.
 
 Outras que podem cair: *por que regressão logística e não uma rede maior?* Poucos dados, treino em segundos, fácil de explicar, e o embedding já faz o trabalho pesado. *Por que "falha_outros" não é diagnosticada?* Só ~4 min de 29 falhas diferentes: no teste, acerto de 0%. Preferimos não exibir um diagnóstico em que não confiamos. *Por que 16 kHz?* É a taxa que o YAMNet exige, e cobre a faixa de interesse (até 8 kHz).
@@ -171,5 +171,7 @@ Outras que podem cair: *por que regressão logística e não uma rede maior?* Po
 
 - **`mock_esp32.py`**: simulador com a mesma API do firmware (mesmas validações, mesma lógica do atuador e do modo auto). Gera tom + ruído ou toca WAVs reais. Permite desenvolver e demonstrar sem a placa. *Pergunta: "como vocês testaram sem hardware?"* Com ele: o mesmo roteiro de testes da placa passa 100% contra o simulador, e a IA foi testada de ponta a ponta com áudio de teste tocado por ele.
 - **`teste_fase1.py`**: testes de aceitação do firmware (`rotas`, `critico`, `resistencia`), com resultado [OK]/[FALHA].
+- **`montar_sons_demo.py`**: escolhe trechos de TESTE que o pipeline acerta em qualquer janela de 5 s e salva 15 s de cada em `data/demo_sons/`, para tocar na apresentação. *Pergunta: "esses sons não foram escolhidos a dedo?"* Sim, e dizemos isso: são exemplos para a demo. As métricas honestas, com trechos sorteados, estão em `docs/metricas_ia.md`.
+- **`iniciar_ia.bat`**: duplo clique sobe o serviço de IA e abre o dashboard.
 - **`baixar_yamnet.py`**: baixa o YAMNet uma vez e prova que ele carrega **offline**, rodando a verificação num processo em que qualquer conexão de rede dá erro.
 - **`docs/generate_diagrams.ps1`**: desenha os diagramas em SVG e PNG a partir de uma única descrição.

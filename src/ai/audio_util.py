@@ -92,20 +92,24 @@ def normalizar(sinal):
     return np.clip(sinal * (RMS_ALVO / valor), -1.0, 1.0).astype(np.float32)
 
 
-_FILTRO_ALTO_FALANTE = butter(4, [150, 6000], btype="bandpass", fs=TAXA, output="sos")
-
-
 def aumentar(sinal, rng):
-    """Cópia "como se tivesse passado pelo alto-falante do celular e pelo MAX9814".
+    """Cópia "como se tivesse passado pelo alto-falante, pelo MAX9814 e pelo ADC do ESP32".
 
-    Passa-faixa 150–6000 Hz (alto-falante pequeno não reproduz graves) e ruído
-    de fundo com SNR aleatória de 15 a 30 dB. Isso reduz a diferença entre o
-    áudio limpo dos datasets e o áudio captado na demonstração.
+    Cada cópia sorteia: faixa do alto-falante (graves cortados em 100–300 Hz,
+    agudos em 4–7 kHz), ruído de fundo (SNR 10–30 dB) e, com 50% de chance cada,
+    saturação (AGC/alto-falante no limite) e quantização de 12 bits. Isso reduz
+    a diferença entre o áudio limpo dos datasets e o captado na demonstração.
     """
-    filtrado = sosfilt(_FILTRO_ALTO_FALANTE, sinal).astype(np.float32)
-    snr_db = rng.uniform(15, 30)
-    ruido = rng.normal(0, rms(filtrado) / (10 ** (snr_db / 20)) + 1e-6, len(filtrado)).astype(np.float32)
-    return normalizar(filtrado + ruido)
+    filtro = butter(4, [rng.uniform(100, 300), rng.uniform(4000, 7000)], btype="bandpass", fs=TAXA, output="sos")
+    x = sosfilt(filtro, sinal).astype(np.float32)
+    snr_db = rng.uniform(10, 30)
+    x = x + rng.normal(0, rms(x) / (10 ** (snr_db / 20)) + 1e-6, len(x)).astype(np.float32)
+    if rng.random() < 0.5:
+        ganho = rng.uniform(1.0, 3.0)
+        x = np.tanh(ganho * x / (np.max(np.abs(x)) + 1e-9)).astype(np.float32)
+    if rng.random() < 0.5:
+        x = (np.round(x / (np.max(np.abs(x)) + 1e-9) * 2048) / 2048).astype(np.float32)
+    return normalizar(x)
 
 
 _FILTRO_CELULAR = butter(4, [250, 5000], btype="bandpass", fs=TAXA, output="sos")
@@ -114,8 +118,8 @@ _FILTRO_CELULAR = butter(4, [250, 5000], btype="bandpass", fs=TAXA, output="sos"
 def simular_captura(sinal, rng):
     """Degradação usada SÓ para avaliar (não para treinar): celular + MAX9814 + ADC.
 
-    Banda mais estreita que no aumento de treino (250–5000 Hz), ruído com SNR de
-    12 dB, ganho e saturação suaves e quantização de 12 bits como no ESP32.
+    Parâmetros FIXOS (250–5000 Hz, ruído com SNR de 12 dB, saturação leve e 12 bits),
+    aplicados a trechos de teste que o modelo nunca viu.
     """
     x = sosfilt(_FILTRO_CELULAR, sinal).astype(np.float32)
     x = x + rng.normal(0, rms(x) / (10 ** (12 / 20)) + 1e-6, len(x)).astype(np.float32)

@@ -125,3 +125,4 @@ audio { width: 100%; margin-top: .75rem; }
 .audio-graficos { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .rodape { text-align: center; color: var(--suave); padding: 1rem; font-size: .95rem; }
 #grafico-historico { height: 200px; }
+.ao-vivo-suave { font-size: 1.15rem; margin: .4rem 0 0; }

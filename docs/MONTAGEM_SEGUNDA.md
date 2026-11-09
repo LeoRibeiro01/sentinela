@@ -102,22 +102,21 @@ Abra o dashboard: **duplo clique em `src\client\index.html`** (funciona sem a IA
 
 ## 6. IA na segunda (com a placa e os atuadores)
 
-```powershell
-.venv\Scripts\activate
-python src\ai\server.py
-```
+Duplo clique em **`tools\iniciar_ia.bat`** (ou, no PowerShell: `.venv\Scripts\python src\ai\server.py`).
 
 Abra `http://localhost:5000/`.
 
 1. **Calibre o silêncio:** com a sala quieta, clique em **Calibrar silêncio (3 s)**.
 2. **Silêncio por 2 min (aceitação 4):** marque "IA comanda os LEDs"; em silêncio o painel ao vivo deve mostrar "Silêncio / sinal fraco" ou "Não é motor de carro" e o LED **não** pode ir para vermelho.
-3. **Playback:** toque no celular, a ~10 cm do microfone, um som de falha (ex.: arquivos de `data\raw\kwerimoto\prepared\test\engine_knock\`) e clique **DIAGNOSTICAR (5 s)**. Repita com `healthy` e com sua voz (deve dar "não é carro").
+3. **Playback:** use o kit **`data\demo_sons\<classe>\`** (gere com `.venv\Scripts\python tools\montar_sons_demo.py` se não existir; copie para o celular ou toque no notebook). Toque a ~10 cm do microfone e clique **DIAGNOSTICAR (5 s)** com o som tocando. Repita para normal, batida de pino, ignição, correia e tucho, e com sua voz (deve dar "não é carro"). No simulador, o kit acertou 24 de 24; ao vivo, o alto-falante e o microfone mudam o som, então teste antes da apresentação.
 4. **Se o resultado ao vivo estiver ruim** (é o risco mais provável: o som do celular captado pelo MAX9814 é diferente dos datasets), grave 60 s de cada classe pela própria placa e retreine (≈ 5–10 min no total):
 
 ```powershell
 python src\ai\record.py --classe normal --segundos 60              # som de motor normal tocado no celular
 python src\ai\record.py --classe falha_batida_pino --segundos 60   # knock tocado no celular
 python src\ai\record.py --classe falha_ignicao --segundos 60       # misfire tocado no celular
+python src\ai\record.py --classe falha_correia --segundos 60       # correia tocada no celular
+python src\ai\record.py --classe falha_tucho --segundos 60         # tucho tocado no celular
 python src\ai\record.py --classe nao_carro --segundos 60           # conversa, palmas, ambiente da sala
 python src\ai\prepare_dataset.py
 python src\ai\train.py

@@ -110,6 +110,10 @@ Treino (reproduzível, 1 comando cada; já existe um modelo treinado em `models/
 .venv\Scripts\python src\ai\record.py --classe normal --segundos 60   # grava áudio rotulado pela placa
 ```
 
+Atalho: **duplo clique em `tools\iniciar_ia.bat`** sobe o serviço e abre o dashboard.
+
+Kit de sons para a demonstração (trechos de teste que o modelo acerta, 15 s cada, para tocar no celular ou no notebook perto do microfone): `.venv\Scripts\python tools\montar_sons_demo.py` → `data\demo_sons\`.
+
 ### 4. Sem a placa (simulador)
 
 ```powershell
@@ -131,14 +135,14 @@ Abra `http://localhost:5000/?esp32=127.0.0.1:8080`.
      porteiro: é carro?  (classificador + veto do YAMNet p/ fala, música, animais)
                  │sim                                  └─não─► "não é motor de carro"
                  ▼
-     diagnóstico: normal · batida de pino · falha de ignição ─► confiança ≥ 60%? ─não─► "inconclusivo"
+     diagnóstico: normal · batida de pino · ignição · correia · tucho ─► confiança ≥ 60%? ─não─► "inconclusivo"
                  ▼ sim
      cartão de diagnóstico (causas, o que verificar, urgência) + comando /atuador
 ```
 
-- Dados: [KweriMoto Engine Sounds](https://huggingface.co/datasets/rayyyyy007/kwerimoto-engine-sounds) (normal, knock, misfire) e [amrrashed](https://github.com/amrrashed/Sound-Based-Vehicle-Diagnostics-Emergency-Signal-Recognition) (falhas mecânicas e sons que não são carro). Os WAVs segmentados do amrrashed estão **corrompidos** (ruído branco); usamos as gravações originais. Detalhes em [docs/DATASETS.md](docs/DATASETS.md).
+- Dados: [KweriMoto Engine Sounds](https://huggingface.co/datasets/rayyyyy007/kwerimoto-engine-sounds) (normal, knock, misfire), [MyDataSet](https://huggingface.co/datasets/RashmiKarunarathne/MyDataSet) (correia, tucho; gravado com celular), [ESC-50](https://github.com/karolpiczak/ESC-50) (sons ambientais que não são carro) e [amrrashed](https://github.com/amrrashed/Sound-Based-Vehicle-Diagnostics-Emergency-Signal-Recognition) (falhas mecânicas e sons que não são carro). Os WAVs segmentados do amrrashed estão **corrompidos** (ruído branco); usamos as gravações originais. Detalhes em [docs/DATASETS.md](docs/DATASETS.md).
 - Divisão treino/validação/teste **por gravação** (sem vazamento); hiperparâmetros e limiar escolhidos na validação.
-- Resultados no teste ([docs/metricas_ia.md](docs/metricas_ia.md)): porteiro ~96% de acerto; diagnóstico ~80% em 3 classes. No binário normal × falha, precisão ~92% e revocação ~82%. Knock **real** nunca visto: ~90% reconhecido. Com áudio degradado (simulando celular + MAX9814), ~72%.
+- Resultados no teste ([docs/metricas_ia.md](docs/metricas_ia.md)): porteiro ~94% de acerto (rejeita ~94% de 249 sons de sala do ESC-50); diagnóstico ~82% em 5 classes (~81% no formato do botão de 5 s). No binário normal × falha, precisão ~94% e revocação ~83%. Knock **real** nunca visto: ~90% reconhecido. Com áudio degradado (simulando celular + MAX9814), ~73%.
 - Limitações honestas: dados da internet e parte sintética. O som captado pelo MAX9814 é diferente, e a melhoria mais eficaz é gravar com `record.py` e retreinar.
 
 ## Testes
@@ -166,4 +170,4 @@ Vídeo da demonstração: *[adicionar link após a apresentação]*.
 
 ## Trabalhos futuros
 
-Nuvem/MQTT, I2S/INMP441/ESP32-S3, vários microfones para localizar a falha, app mobile, autenticação, banco de dados, TinyML dentro do ESP32, display OLED SSD1306, mais classes de falha mecânica (rolamento, correia, escapamento) quando houver dados suficientes.
+Nuvem/MQTT, I2S/INMP441/ESP32-S3, vários microfones para localizar a falha, app mobile, autenticação, banco de dados, TinyML dentro do ESP32, display OLED SSD1306, mais classes de falha mecânica (rolamento, escapamento, freio) quando houver dados suficientes.

@@ -60,8 +60,11 @@ def pedir_esp32(caminho, timeout=4):
             return r.read()
 
 
-# 1,5 s = 2 quadros cheios do YAMNet; ainda deixa 0,5 s de folga no buffer de ~2 s do ESP32.
-MS_AO_VIVO = 1500
+# Memória do modo ao vivo: as últimas 5 janelas de 1 s (≈ 5 s), analisadas JUNTAS a cada
+# segundo. É o mesmo formato do botão DIAGNOSTICAR (~9 quadros cheios do YAMNet); analisar só
+# 1–1,5 s por vez fazia o resultado oscilar (ex.: knock alternando com "motor normal").
+JANELAS_AO_VIVO = 5
+memoria = deque(maxlen=JANELAS_AO_VIVO)
 
 
 def baixar_audio(ms=1000):
@@ -89,7 +92,9 @@ def texto_ao_vivo(r):
     if r["status"] == "sinal_fraco":
         return {"texto": "Silêncio / sinal fraco", "status": "sinal_fraco"}
     if r["status"] == "nao_carro":
-        som = f" ({r['som']})" if r["som"] else ""
+        # O nome do som só aparece quando o YAMNet reconheceu algo claramente não-carro (veto);
+        # se foi o porteiro que rejeitou, o "som mais provável" pode até ser "veículo" e confundiria.
+        som = f" ({r['som']})" if r["veto"] and r["som"] else ""
         return {"texto": f"Não é motor de carro{som}", "confianca": int((1 - r["carro_prob"]) * 100),
                 "status": "nao_carro"}
     if r["status"] == "sem_modelo":
@@ -118,11 +123,18 @@ def laco_ao_vivo():
     while True:
         inicio = time.time()
         if diagnosticando.is_set():  # o diagnóstico usa o ESP32 sozinho
+            memoria.clear()  # depois dele, o áudio guardado estaria velho
             time.sleep(0.2)
             continue
         try:
-            sinal = baixar_audio(MS_AO_VIVO)
+            pedaco = baixar_audio(1000)
             vivo["esp32_ok"] = True
+            if rms(pedaco) < config["limiar_silencio"]:
+                memoria.clear()  # silêncio interrompe: a próxima análise começa do zero
+                sinal = pedaco
+            else:
+                memoria.append(pedaco)
+                sinal = np.concatenate(memoria)
             r = analisador.analisar(sinal, config["limiar_silencio"], config["demo"])
             resumo = texto_ao_vivo(r)
             resumo["rms_bruto"] = r["rms_bruto"]
@@ -131,6 +143,7 @@ def laco_ao_vivo():
             vivo["esp32_ok"] = False
             resumo = {"texto": "ESP32 sem resposta", "status": "esp32_offline", "erro": str(e)[:80]}
             votos.clear()
+            memoria.clear()
         anterior = vivo["ao_vivo"].get("texto")
         vivo["ao_vivo"] = resumo
         if resumo["texto"] != anterior:
@@ -272,12 +285,20 @@ class Handler(BaseHTTPRequestHandler):
         if "esp32" in q:
             if not re.fullmatch(r"[\w.-]+(:\d{1,5})?", q["esp32"]):
                 return 400, {"erro": "endereço do ESP32 inválido"}
+            if q["esp32"] != config["esp32"]:
+                memoria.clear()  # áudio guardado era de outro ESP32
+                votos.clear()
+                vivo["estado_suave"] = None
             config["esp32"] = q["esp32"]
         for chave in ("demo", "ia_atuador"):
             if chave in q:
                 config[chave] = booleano(q[chave])
         if "ia_atuador" in q:
-            ultimo_comando = None  # ao religar, reenvia o estado atual na próxima decisão
+            # Ao ligar/desligar, a decisão recomeça do zero: nunca reenviar um alerta antigo
+            # (bug encontrado no teste: um alerta de minutos antes acendia o LED em silêncio).
+            ultimo_comando = None
+            votos.clear()
+            vivo["estado_suave"] = None
         try:
             if "limiar_silencio" in q:
                 config["limiar_silencio"] = min(0.5, max(0.0, float(q["limiar_silencio"])))

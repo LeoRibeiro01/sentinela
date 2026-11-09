@@ -53,3 +53,18 @@ Basta extrair cada dataset na sua pasta e rodar `prepare_dataset.py`. Sem regra 
 ## 4. Gravações da equipe — `data/own/<classe>/`
 
 Geradas por `python src/ai/record.py --classe <classe> --segundos 60`. Cada arquivo é uma gravação (um grupo) e entra automaticamente no próximo `prepare_dataset.py`.
+
+## 5. MyDataSet — `data/raw/mydataset/`
+
+- Origem: Hugging Face `RashmiKarunarathne/MyDataSet` (`git clone` + `git lfs pull` só dos arquivos usados, 09/11/2026). Licença não declarada (o kwerimoto já usa este dataset em contexto de pesquisa/educação).
+- Gravações de **celular**, 5–10 s, carros Allion, Vios, Axio, Sunny, Maruti, Alto, Panda; marcha lenta e aceleração.
+- **Usado:** `belt_issue_*.wav` → `falha_correia` (59 arquivos, 5,7 min) e `tappet_issue_*.wav` → `falha_tucho` (68 arquivos, 8,2 min). Áudio íntegro (autocorrelação mediana 0,76–0,89).
+- **Não usado:** `healthy` e `misfire`. Eles **já estão dentro do kwerimoto** (fonte "Hugging Face"); usar de novo poria o mesmo arquivo em treino e teste.
+- Cada arquivo é tratado como uma gravação (grupo). O dataset não informa quais arquivos são do mesmo carro, então pode haver alguma semelhança entre treino e teste. As métricas dessas duas classes tendem a ser **otimistas**.
+
+## 6. ESC-50 — `data/raw/esc50/`
+
+- Origem: GitHub `karolpiczak/ESC-50` (zip do branch master, 09/11/2026). Licença **CC BY-NC 3.0** (uso educacional, não comercial).
+- 2000 clipes de 5 s em 50 categorias de sons ambientais (animais, humanos, domésticos, natureza, urbanos).
+- **Usado como `nao_carro`**, agrupado pelo clipe de origem do Freesound (`src_file`). Ensina o porteiro a rejeitar sons de sala de aula: palmas, risada, tosse, passos, teclado, mouse, batida em porta, relógio etc.
+- **Excluídas por ambiguidade:** `engine`, `car_horn`, `train`, `airplane`, `helicopter`, `chainsaw`.

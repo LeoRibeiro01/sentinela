@@ -65,20 +65,65 @@
   },
   "_nao_carro": {
     "titulo": "Som não reconhecido como motor de carro",
-    "causas_provaveis": ["O som captado parece ser outra coisa (ex.: fala, música, ambiente)."],
-    "o_que_verificar": ["Aproxime o microfone do motor em funcionamento e repita.", "Evite conversar perto do microfone durante a captura."],
+    "causas_provaveis": [
+      "O som captado parece ser outra coisa (ex.: fala, música, ambiente)."
+    ],
+    "o_que_verificar": [
+      "Aproxime o microfone do motor em funcionamento e repita.",
+      "Evite conversar perto do microfone durante a captura."
+    ],
     "urgencia": "baixa"
   },
   "_inconclusivo": {
     "titulo": "Diagnóstico inconclusivo",
-    "causas_provaveis": ["Nenhuma classe atingiu a confiança mínima; o modelo não vai fingir certeza."],
-    "o_que_verificar": ["Repita a captura com o microfone mais perto do motor e com menos ruído ao redor.", "Se o resultado continuar inconclusivo e houver sintomas, procure um mecânico."],
+    "causas_provaveis": [
+      "Nenhuma classe atingiu a confiança mínima; o modelo não vai fingir certeza."
+    ],
+    "o_que_verificar": [
+      "Repita a captura com o microfone mais perto do motor e com menos ruído ao redor.",
+      "Se o resultado continuar inconclusivo e houver sintomas, procure um mecânico."
+    ],
     "urgencia": "baixa"
   },
   "_sinal_fraco": {
     "titulo": "Sinal fraco",
-    "causas_provaveis": ["Quase todo o áudio captado estava em silêncio."],
-    "o_que_verificar": ["Aproxime o microfone do motor (ou do alto-falante) e repita.", "Confira se o motor está ligado."],
+    "causas_provaveis": [
+      "Quase todo o áudio captado estava em silêncio."
+    ],
+    "o_que_verificar": [
+      "Aproxime o microfone do motor (ou do alto-falante) e repita.",
+      "Confira se o motor está ligado."
+    ],
     "urgencia": "baixa"
+  },
+  "falha_correia": {
+    "nome": "Problema na correia",
+    "titulo": "Possível problema na correia (chiado/rangido)",
+    "causas_provaveis": [
+      "Correia do alternador/acessórios gasta, ressecada ou frouxa.",
+      "Tensor ou polia com desgaste.",
+      "Contaminação da correia com óleo ou líquido de arrefecimento."
+    ],
+    "o_que_verificar": [
+      "Com o motor DESLIGADO, inspecione a correia: rachaduras, brilho (vitrificada) ou folga.",
+      "Verifique se o chiado aumenta ao ligar o ar-condicionado ou virar o volante (mais carga na correia).",
+      "Correia de acessórios rompida pode desligar alternador e direção hidráulica: troque logo."
+    ],
+    "urgencia": "media"
+  },
+  "falha_tucho": {
+    "nome": "Ruído de tucho/válvula",
+    "titulo": "Possível ruído de tuchos/válvulas (\"tec-tec\")",
+    "causas_provaveis": [
+      "Nível ou pressão de óleo baixos.",
+      "Óleo velho ou de viscosidade errada.",
+      "Tucho hidráulico com desgaste ou folga de válvula fora do especificado."
+    ],
+    "o_que_verificar": [
+      "Confira o nível do óleo com o motor frio e em local plano.",
+      "Verifique se a troca de óleo está em dia e com o óleo especificado no manual.",
+      "Se o ruído persistir com óleo correto, leve a um mecânico para checar folga de válvulas."
+    ],
+    "urgencia": "media"
   }
 }

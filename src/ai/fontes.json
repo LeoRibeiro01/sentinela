@@ -1,6 +1,6 @@
 {
   "_comentario": "Como cada pasta de data/raw/<fonte>/ vira uma classe. Lido por prepare_dataset.py. Regras são avaliadas em ordem e a PRIMEIRA que pega um arquivo vence. Fontes sem regra explícita usam 'palavras_chave'.",
-  "classes_diagnostico": ["normal", "falha_batida_pino", "falha_ignicao"],
+  "classes_diagnostico": ["normal", "falha_batida_pino", "falha_ignicao", "falha_correia", "falha_tucho"],
   "classes_somente_porteiro": ["falha_outros"],
   "_classes_somente_porteiro": "Classes com poucos dados: entram no treino como exemplos de 'é carro', mas não viram diagnóstico. Para promover uma delas, mova-a para classes_diagnostico e retreine.",
   "classe_nao_carro": "nao_carro",
@@ -30,6 +30,19 @@
         {"glob": "Datasets/DB2/sheep/*", "classe": "nao_carro"},
         {"glob": "Datasets/DB2/wolf/*", "classe": "nao_carro"}
       ]
+    },
+    "mydataset": {
+      "tipo": "regras",
+      "_comentario": "Hugging Face RashmiKarunarathne/MyDataSet (gravações de celular). Só correia e tucho: healthy/misfire deste dataset JÁ estão dentro do kwerimoto e duplicariam arquivos entre treino e teste.",
+      "regras": [
+        {"glob": "MyDataSet/belt_issue_*.wav", "classe": "falha_correia"},
+        {"glob": "MyDataSet/tappet_issue_*.wav", "classe": "falha_tucho"}
+      ]
+    },
+    "esc50": {
+      "tipo": "esc50",
+      "_comentario": "ESC-50 (CC BY-NC 3.0): sons ambientais de 5 s. Tudo vira nao_carro, exceto categorias ambíguas com motor.",
+      "excluir": ["engine", "car_horn", "train", "airplane", "helicopter", "chainsaw"]
     },
     "own": {"tipo": "pastas", "_comentario": "data/own/<classe>/*.wav gravados com record.py; o nome da pasta é a classe"}
   },

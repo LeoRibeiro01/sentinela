@@ -2,12 +2,14 @@
   "classes": [
     "normal",
     "falha_batida_pino",
-    "falha_ignicao"
+    "falha_ignicao",
+    "falha_correia",
+    "falha_tucho"
   ],
   "porteiro": [
     "carro",
     "nao_carro"
   ],
   "limiar_confianca": 60,
-  "treinado_em": "2026-11-08 23:28"
+  "treinado_em": "2026-11-09 08:52"
 }

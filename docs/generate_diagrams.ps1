@@ -85,7 +85,7 @@ $caixas = @(
   (Caixa 830 110 250 160 '#fffaf0' 'Atuadores' @('LED verde · GPIO16', 'LED vermelho · GPIO17', 'Buzzer (NPN) · GPIO18', 'LED azul onboard · GPIO2')),
   (Caixa 40 430 1040 230 '#ebf8ff' 'Notebook (conectado ao Wi-Fi SENTINELA, sem internet)' @()),
   (Caixa 70 480 430 160 '#ffffff' 'Dashboard (navegador, JS puro)' @('Polling de 1 s: /status e /sensor', 'Selo conectado/desconectado, gráficos', 'Botões Normal / Alerta / Buzzer / Teste', 'Funciona SEM o serviço de IA')),
-  (Caixa 620 480 430 160 '#ffffff' 'Serviço de IA (Python, localhost:5000)' @('Puxa /audio.wav a cada ~1 s', 'YAMNet -> porteiro "é carro?"', '-> diagnóstico (normal/batida/ignição)', 'Comanda /atuador; serve o dashboard'))
+  (Caixa 620 480 430 160 '#ffffff' 'Serviço de IA (Python, localhost:5000)' @('Puxa /audio.wav a cada ~1 s', 'YAMNet -> porteiro "é carro?"', '-> diagnóstico (5 classes)', 'Comanda /atuador; serve o dashboard'))
 )
 $setas = @(
   (Seta 290 190 372 190 '#0f766e' 'áudio'),

@@ -76,6 +76,14 @@ def listar_itens(config):
                         itens.append((pasta / linha["file_name"], classe, f"kwerimoto:{linha['group']}",
                                       fonte, linha["split"]))
             continue
+        if cfg["tipo"] == "esc50":
+            # ESC-50: meta/esc50.csv diz a categoria; src_file é o clipe original (= grupo).
+            with open(pasta / "meta" / "esc50.csv", encoding="utf-8") as f:
+                for linha in csv.DictReader(f):
+                    if linha["category"] not in cfg["excluir"]:
+                        itens.append((pasta / "audio" / linha["filename"], config["classe_nao_carro"],
+                                      f"esc50:{linha['src_file']}", fonte, ""))
+            continue
         if cfg["tipo"] == "regras":
             vistos = set()  # a primeira regra que pega um arquivo vence
             for regra in cfg["regras"]:

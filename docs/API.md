@@ -102,10 +102,10 @@ Serve o dashboard (`src/client`). Aceita `?esp32=ENDERECO` para escolher o ESP32
 
 ## `GET /api/resultado`
 
-Estado ao vivo (análise de 1,5 s de áudio a cada ~1 s).
+Estado ao vivo: a cada ~1 s, analisa os últimos ~5 s de áudio (5 janelas de 1 s, o mesmo formato do botão). Silêncio zera essa memória.
 
 ```json
-{"ok":true,"modelo":true,"classes":["normal","falha_batida_pino","falha_ignicao"],
+{"ok":true,"modelo":true,"classes":["normal","falha_batida_pino","falha_ignicao","falha_correia","falha_tucho"],
  "esp32":"192.168.4.1","demo":false,"ia_atuador":false,"limiar_silencio":0.004,"limiar_confianca":60,
  "esp32_ok":true,"estado_suave":"normal","diagnosticando":false,
  "ao_vivo":{"texto":"Motor normal","status":"ok","confianca":79,"carro_prob":99,"rms_bruto":0.06,

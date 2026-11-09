@@ -368,6 +368,9 @@ function mostrarResultadoVivo(r) {
   $('vivo-rotulo').textContent = v.texto || '--';
   $('vivo-confianca').textContent = v.confianca !== undefined && v.confianca !== null ? `(${v.confianca}%)` : '';
   $('vivo-top3').textContent = (v.top3 || []).map((c) => `${c.nome}: ${c.prob}%`).join(' · ');
+  const suave = { alerta: 'FALHA (alerta)', normal: 'NORMAL' };
+  $('vivo-suave').textContent = suave[r.estado_suave] || 'aguardando sons de motor confiáveis';
+  $('vivo-suave').style.color = r.estado_suave === 'alerta' ? 'var(--vermelho)' : r.estado_suave === 'normal' ? 'var(--verde)' : '';
   const lista = $('vivo-historico');
   lista.replaceChildren(...(r.historico || []).slice(-12).reverse().map((h) => {
     const li = document.createElement('li');
