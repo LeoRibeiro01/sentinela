@@ -1,95 +1,142 @@
 <!doctype html>
+<!--
+  index.html — Dashboard do SENTINELA (estrutura da página).
+  Funciona offline: sem CDN, sem fontes externas, sem build. Pode ser aberto
+  direto do disco (duplo clique) ou servido pelo serviço de IA em
+  http://localhost:5000/. A lógica está em app.js e o visual em style.css.
+-->
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f5f7fb">
-  <title>Sentinela | Diagnóstico acústico</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' };
-  </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'DM Sans', sans-serif; }
-    h1, h2 { font-family: 'Manrope', sans-serif; }
-    .surface { background: rgba(255,255,255,.82); }
-    .dark .surface { background: rgba(20,29,43,.82); }
-  </style>
+  <title>SENTINELA — Diagnóstico Acústico</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100">
-  <main class="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
-    <header class="mb-10 flex items-start justify-between gap-4">
-      <div>
-        <div class="mb-3 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold tracking-wide text-teal-800 dark:bg-teal-950 dark:text-teal-300">
-          <span class="h-2 w-2 rounded-full bg-teal-500"></span> SISTEMA DE DIAGNÓSTICO ACÚSTICO
-        </div>
-        <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">Sentinela</h1>
-        <p class="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">Monitore o sensor e controle o alerta do seu ESP32 na rede local.</p>
-      </div>
-      <button id="theme-toggle" class="rounded-xl border border-slate-200 bg-white p-3 text-slate-600 shadow-sm hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Alternar modo noturno" title="Alternar modo noturno">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 15.3A8.5 8.5 0 0 1 8.7 3.2 8.5 8.5 0 1 0 20.8 15.3Z"/></svg>
-      </button>
-    </header>
+<body>
+  <header class="topo">
+    <div class="marca">
+      <h1>SENTINELA</h1>
+      <p>Diagnóstico acústico automotivo</p>
+    </div>
+    <form id="form-endereco" class="endereco">
+      <label for="campo-ip">Endereço do ESP32</label>
+      <input id="campo-ip" type="text" spellcheck="false" autocomplete="off">
+      <button type="submit">Conectar</button>
+    </form>
+    <div class="selos">
+      <div id="selo-esp32" class="selo selo-off"><span class="ponto"></span><span id="texto-esp32">ESP32: DESCONECTADO</span></div>
+      <div id="selo-ia" class="selo selo-off"><span class="ponto"></span><span id="texto-ia">IA: OFFLINE</span></div>
+    </div>
+  </header>
 
-    <section class="surface mb-5 rounded-2xl border border-slate-200 p-5 shadow-sm dark:border-slate-800 sm:p-6" aria-labelledby="connection-title">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
-        <label class="flex-1" for="esp32-ip">
-          <span id="connection-title" class="mb-2 block text-sm font-semibold">Endereço do ESP32</span>
-          <div class="flex rounded-xl border border-slate-200 bg-white focus-within:border-teal-500 focus-within:ring-4 focus-within:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-900">
-            <span class="flex items-center pl-3 text-sm text-slate-400">http://</span>
-            <input id="esp32-ip" type="text" inputmode="url" autocomplete="url" placeholder="192.168.1.100" class="min-w-0 flex-1 rounded-r-xl bg-transparent px-2 py-3 text-sm outline-none placeholder:text-slate-400" aria-describedby="ip-help">
-          </div>
-          <span id="ip-help" class="mt-2 block text-xs text-slate-500 dark:text-slate-400">Veja o IP no Monitor Serial após iniciar o ESP32.</span>
+  <main class="grade">
+    <!-- Sensor: nível ao vivo e histórico de 60 s -->
+    <section class="cartao" id="cartao-sensor">
+      <h2>Microfone</h2>
+      <div class="nivel-linha">
+        <div class="nivel-numero"><span id="nivel">--</span><small>nível</small></div>
+        <div class="nivel-barra"><div id="nivel-preenchimento"></div></div>
+      </div>
+      <dl class="metricas">
+        <div><dt>RMS</dt><dd id="rms">--</dd></div>
+        <div><dt>Pico</dt><dd id="pico">--</dd></div>
+        <div><dt>Saturação</dt><dd id="clipping">--</dd></div>
+      </dl>
+      <canvas id="grafico-historico" height="160" aria-label="Histórico do nível nos últimos 60 segundos"></canvas>
+      <p class="legenda">Histórico dos últimos 60 s (nível 0–100, escala relativa)</p>
+    </section>
+
+    <!-- Atuadores: estado e comandos -->
+    <section class="cartao" id="cartao-atuador">
+      <h2>Atuadores</h2>
+      <div class="leds">
+        <div class="led"><span id="led-verde" class="luz luz-verde"></span>Verde</div>
+        <div class="led"><span id="led-vermelho" class="luz luz-vermelha"></span>Vermelho</div>
+        <div class="led"><span id="led-buzzer" class="luz luz-buzzer"></span>Buzzer</div>
+      </div>
+      <p class="estado-atuador">Estado: <strong id="estado-atuador">--</strong></p>
+      <div class="botoes">
+        <button class="btn btn-verde" data-comando="estado=normal">Normal</button>
+        <button class="btn btn-vermelho" data-comando="estado=alerta">Alerta</button>
+        <button class="btn" id="botao-buzzer">Buzzer</button>
+        <button class="btn" data-comando="estado=teste">Teste</button>
+        <button class="btn btn-escuro" data-comando="estado=off">Desligar</button>
+      </div>
+      <form id="form-modo" class="modo">
+        <label>Modo
+          <select id="campo-modo"><option value="manual">Manual</option><option value="auto">Automático (por nível)</option></select>
         </label>
-        <button id="connect-button" class="rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-500/25">Conectar</button>
+        <label>Limiar <input id="campo-limiar" type="number" min="0" max="100" value="45"></label>
+        <button type="submit" class="btn">Aplicar</button>
+      </form>
+      <p id="msg-comando" class="mensagem" role="status"></p>
+    </section>
+
+    <!-- IA: diagnóstico de 5 s e resultado ao vivo -->
+    <section class="cartao cartao-largo" id="cartao-ia">
+      <h2>Diagnóstico por IA</h2>
+      <div class="ia-topo">
+        <button id="botao-diagnosticar" class="btn btn-grande" disabled>DIAGNOSTICAR (5 s)</button>
+        <div class="ia-opcoes">
+          <label><input type="checkbox" id="opcao-demo"> Modo demo (animais)</label>
+          <label><input type="checkbox" id="opcao-ia-atuador"> IA comanda os LEDs (ao vivo)</label>
+        </div>
+      </div>
+      <div id="progresso" class="progresso" hidden><div id="progresso-barra"></div><span id="progresso-texto"></span></div>
+      <p id="aviso-ia" class="aviso">Serviço de IA offline — o monitoramento e os comandos acima continuam funcionando.</p>
+
+      <div class="ia-colunas">
+        <div>
+          <h3>Resultado do diagnóstico</h3>
+          <p id="diag-status" class="diag-status">Pressione DIAGNOSTICAR com o microfone perto do motor.</p>
+          <div id="diag-ranking" class="ranking"></div>
+          <p class="legenda">Porcentagens = probabilidade estimada pelo modelo.</p>
+        </div>
+        <div id="diag-cartao" class="diag-cartao" hidden>
+          <div class="diag-cabecalho"><h3 id="diag-titulo"></h3><span id="diag-urgencia" class="urgencia"></span></div>
+          <h4>Causas prováveis</h4><ul id="diag-causas"></ul>
+          <h4>O que verificar</h4><ul id="diag-verificar"></ul>
+          <p id="diag-aviso" class="aviso-diag"></p>
+        </div>
+      </div>
+
+      <div class="ia-ao-vivo">
+        <h3>Ao vivo (a cada ~1 s)</h3>
+        <p class="ao-vivo-linha"><strong id="vivo-rotulo">--</strong> <span id="vivo-confianca"></span></p>
+        <p id="vivo-top3" class="legenda"></p>
+        <ol id="vivo-historico" class="historico"></ol>
       </div>
     </section>
 
-    <section class="grid gap-5 sm:grid-cols-2" aria-label="Painel de monitoramento">
-      <article class="surface rounded-2xl border border-slate-200 p-6 shadow-sm dark:border-slate-800">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-slate-600 dark:text-slate-300">Conexão</h2>
-          <span class="rounded-lg bg-slate-100 p-2 text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 9a11 11 0 0 1 14 0M8 12a6.5 6.5 0 0 1 8 0m-5 3a2 2 0 0 1 2 0M12 19h.01" stroke-linecap="round"/></svg>
-          </span>
-        </div>
-        <div class="mt-6 flex items-center gap-3">
-          <span id="connection-dot" class="h-3 w-3 rounded-full bg-slate-300"></span>
-          <p id="connection-status" class="text-2xl font-bold">Desconectado</p>
-        </div>
-        <p id="last-update" class="mt-2 text-xs text-slate-500 dark:text-slate-400">Informe o endereço e conecte.</p>
-      </article>
-
-      <article class="surface rounded-2xl border border-slate-200 p-6 shadow-sm dark:border-slate-800">
-        <div class="flex items-center justify-between">
-          <h2 class="text-sm font-semibold text-slate-600 dark:text-slate-300">Leitura acústica</h2>
-          <span class="rounded-lg bg-teal-50 p-2 text-teal-700 dark:bg-teal-950 dark:text-teal-300">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10v4m4-8v12m4-16v20m4-14v8m4-11v14m4-10v6" stroke-linecap="round"/></svg>
-          </span>
-        </div>
-        <div class="mt-5 flex items-baseline gap-2"><span id="sensor-value" class="text-5xl font-extrabold tracking-tight tabular-nums">—</span><span class="text-sm text-slate-500 dark:text-slate-400">/ 4095</span></div>
-        <div class="mt-5 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div id="sensor-bar" class="h-full w-0 rounded-full bg-teal-500 transition-all duration-300"></div></div>
-        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Valor bruto do ADC, resolução de 12 bits</p>
-      </article>
-
-      <article class="surface rounded-2xl border border-slate-200 p-6 shadow-sm dark:border-slate-800 sm:col-span-2">
-        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div class="flex items-center gap-2"><h2 class="text-sm font-semibold text-slate-600 dark:text-slate-300">Atuador de alerta</h2><span id="actuator-pill" class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">Desconhecido</span></div>
-            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">Controle o LED ou a entrada de um driver conectado ao GPIO 23.</p>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <button id="turn-on" class="rounded-xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus:ring-4 focus:ring-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50">Ligar alerta</button>
-            <button id="turn-off" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-300/40 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">Desligar alerta</button>
-          </div>
-        </div>
-      </article>
+    <!-- Áudio: forma de onda e espectro do último trecho -->
+    <section class="cartao" id="cartao-audio">
+      <h2>Último trecho de áudio</h2>
+      <div class="botoes">
+        <button id="botao-capturar" class="btn">Capturar 1 s</button>
+        <label class="inline"><input type="checkbox" id="opcao-auto-captura"> a cada 5 s</label>
+      </div>
+      <canvas id="grafico-onda" height="140" aria-label="Forma de onda"></canvas>
+      <p class="legenda">Forma de onda (1 s)</p>
+      <canvas id="grafico-espectro" height="140" aria-label="Espectro de frequência"></canvas>
+      <p class="legenda">Espectro 0–4 kHz · pico em <span id="freq-pico">--</span></p>
+      <audio id="player" controls></audio>
     </section>
-    <footer class="mt-8 text-center text-xs text-slate-400">Sentinela · ESP32 na rede Wi-Fi local · Atualização a cada 2 segundos</footer>
+
+    <!-- Sistema: dados de saúde do ESP32 -->
+    <section class="cartao" id="cartao-sistema">
+      <h2>Sistema</h2>
+      <dl class="metricas metricas-coluna">
+        <div><dt>Ligado há</dt><dd id="uptime">--</dd></div>
+        <div><dt>Taxa de amostragem</dt><dd id="taxa">--</dd></div>
+        <div><dt>Memória livre</dt><dd id="heap">--</dd></div>
+        <div><dt>Amostras perdidas</dt><dd id="perdidas">--</dd></div>
+        <div><dt>Clientes no Wi-Fi</dt><dd id="clientes">--</dd></div>
+        <div><dt>Última resposta</dt><dd id="ultima-resposta">--</dd></div>
+      </dl>
+    </section>
   </main>
+
+  <footer class="rodape">SENTINELA · PUCPR · Apoio à decisão — não substitui um mecânico.</footer>
   <script src="app.js"></script>
 </body>
 </html>
