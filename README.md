@@ -155,6 +155,7 @@ Abra `http://localhost:5000/?esp32=127.0.0.1:8080`.
 
 | Documento | Conteúdo |
 |---|---|
+| [docs/RELATORIO_COMPLETO.md](docs/RELATORIO_COMPLETO.md) | **Relatório completo**: antes × depois, funcionamento do micro ao macro, treino da IA, problemas e testes (para leigos e para a banca) |
 | [docs/API.md](docs/API.md) | Rotas do ESP32 e do serviço de IA |
 | [docs/EXPLICACAO_CODIGO.md](docs/EXPLICACAO_CODIGO.md) | Cada arquivo: propósito, fluxo, funções e perguntas prováveis da defesa |
 | [docs/DECISOES.md](docs/DECISOES.md) | Decisões técnicas e porquês |
