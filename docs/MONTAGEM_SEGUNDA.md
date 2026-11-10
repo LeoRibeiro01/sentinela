@@ -1,145 +1,145 @@
-# Montagem de segunda-feira — passo a passo
+# Montagem final e testes de aceitação — passo a passo
 
-**Nenhuma mudança de código é necessária.** O firmware já configura GPIO16/17/18 como saída (sem nada ligado, isso é inofensivo) e o LED azul da placa (GPIO2) espelha o alerta. Segunda é só ligar fios, testar e validar.
+Guia para o dia da montagem final (tela OLED SSD1306 incluída) e para a apresentação. O firmware **já está pronto para a tela**: ele a procura no I2C a cada 3 s, funciona sem ela e a reconhece quando for ligada (o log registra "Tela OLED detectada").
 
-Tempo estimado: 30 min de montagem + 30 min de testes + 30 min de gravação/ajuste da IA (opcional, mas recomendado).
+Tempo estimado: 15 min de gravação do firmware + 20 min de montagem + 30 min de testes.
 
 ## 1. Tabela de pinos (fonte da verdade)
 
 | Componente | Pino do componente | Liga em | Observação |
 |---|---|---|---|
-| MAX9814 (já montado) | VDD | 3V3 | **Nunca** em 5 V/VIN |
+| MAX9814 (sensor) | VDD | 3V3 | **Nunca** em 5 V/VIN |
 | MAX9814 | GND | GND | |
 | MAX9814 | OUT | GPIO34 | Entrada analógica (ADC1) |
-| MAX9814 | GAIN | VDD | Ganho fixo de 40 dB; não mexer entre gravações |
+| MAX9814 | GAIN | VDD | Ganho fixo de 40 dB |
 | MAX9814 | AR | — | Solto |
-| LED verde | ânodo (perna **longa**) | GPIO16 via resistor **220 Ω** | Cátodo (perna curta, lado chanfrado) no GND |
-| LED vermelho | ânodo (perna **longa**) | GPIO17 via resistor **220 Ω** | Cátodo no GND |
-| Transistor NPN | base | GPIO18 via resistor **1 kΩ** | |
-| Transistor NPN | emissor | GND | |
-| Transistor NPN | coletor | buzzer (−) | |
-| Buzzer ativo 5 V | (+) (perna longa / marcado "+") | **VIN** (5 V) | Corrente do buzzer passa pelo transistor, não pelo GPIO |
+| **OLED SSD1306 (atuador)** | **VCC** | **3V3** | Módulo I2C de 4 pinos. A ordem dos pinos varia (GND-VCC-SCL-SDA ou VCC-GND-SCL-SDA): **leia a serigrafia** |
+| OLED | **GND** | GND | |
+| OLED | **SCL** | **GPIO22** | Clock do I2C |
+| OLED | **SDA** | **GPIO21** | Dados do I2C |
+| LED verde | ânodo (perna **longa**) | GPIO16 via **220 Ω** | Cátodo no GND |
+| LED vermelho | ânodo (perna **longa**) | GPIO17 via **220 Ω** | Cátodo no GND |
+| Transistor BC548 | base (meio) | GPIO18 via **1 kΩ** | Face lisa para você: **C – B – E** |
+| BC548 | emissor (direita) | GND | Só o GND nessa coluna |
+| BC548 | coletor (esquerda) | buzzer (−) | |
+| Buzzer ativo 5 V | (+) | **VIN** (5 V) | |
 
-Use **um** LED de cada cor e **um** buzzer. As peças extras são reserva.
+> Erro já cometido em 09/11: o resistor de 1 kΩ estava na coluna do **emissor** e a base ficou solta, então o buzzer não apitava. O resistor tem que terminar na coluna da perna do **meio** (base).
 
-### Pinagem do transistor (confira qual veio!)
-
-Segure o transistor com a **face reta virada para você** e as pernas para baixo:
-
-| Modelo | Esquerda | Meio | Direita |
-|---|---|---|---|
-| **BC548** | Coletor | Base | Emissor |
-| **2N2222** (cápsula plástica TO-92, "PN2222"/"2N2222A") | Emissor | Base | Coletor |
-
-São **invertidos** entre si. Se o buzzer não apitar no teste, a primeira suspeita é o transistor ao contrário. (O 2N2222 em cápsula metálica tem outra pinagem: a perna ao lado da "aba" é o emissor.)
-
-### Diagrama de ligação (protoboard)
+### Diagrama de ligação
 
 ```
             ESP32 DevKit v1
-   GPIO16 ──[220Ω]──►|── GND        (LED verde: ►| = ânodo→cátodo)
-   GPIO17 ──[220Ω]──►|── GND        (LED vermelho)
-
-   VIN (5V) ───────────── (+) BUZZER (−) ──┐
-                                           │ coletor
-   GPIO18 ──[1kΩ]──────────────────── base  NPN
-                                           │ emissor
-   GND ────────────────────────────────────┘
-
+   GPIO16 ──[220Ω]──►|── GND            LED verde
+   GPIO17 ──[220Ω]──►|── GND            LED vermelho
+   VIN (5V) ── (+) BUZZER (−) ── coletor ┐
+   GPIO18 ──[1kΩ]──────────────── base   ├ BC548
+   GND ──────────────────────── emissor  ┘
    3V3 ── VDD  MAX9814   GND ── GND   OUT ── GPIO34   GAIN ── VDD
+   3V3 ── VCC  OLED      GND ── GND   SDA ── GPIO21   SCL ── GPIO22
 ```
 
-## 2. Ordem de montagem e energização
+## 2. Gravar o firmware novo (uma vez)
 
-1. **Desligue o cabo USB** da placa.
-2. Ligue o trilho de **GND** da protoboard ao GND do ESP32. Todos os GND (LEDs, emissor, MAX9814) vão nele.
-3. Monte o **LED verde** (GPIO16 → 220 Ω → perna longa; perna curta → GND).
-4. Monte o **LED vermelho** (GPIO17, igual ao verde).
-5. Monte o **transistor + buzzer**: base ← 1 kΩ ← GPIO18; emissor → GND; coletor → (−) do buzzer; (+) do buzzer → VIN.
-6. Confira com a tabela: **nada de 5 V/VIN no MAX9814 nem em GPIO**. VIN só no (+) do buzzer.
-7. Ligue o **USB do notebook** (não o power bank ainda). O LED vermelho da placa acende; após ~2 s o Wi-Fi `SENTINELA` aparece. Nenhum LED externo deve acender sozinho (o firmware começa em `off`).
-8. Só depois de tudo validado, teste com o **power bank** (seção 5).
-
-## 3. Testes de cada atuador
-
-Conecte o notebook ao Wi-Fi **SENTINELA** (senha `sentinela123`) e rode, no PowerShell, na pasta do projeto:
+O firmware da apresentação (v2.0) tem o dashboard embutido, o log na flash, o Wi-Fi AP+STA e a tela OLED.
 
 ```powershell
-curl.exe "http://192.168.4.1/atuador?estado=teste"     # ~2 s: verde, vermelho, verde, vermelho, BEEP, pausa
-curl.exe "http://192.168.4.1/atuador?estado=normal"    # só o verde aceso
-curl.exe "http://192.168.4.1/atuador?estado=alerta"    # vermelho + buzzer + LED azul da placa
-curl.exe "http://192.168.4.1/atuador?estado=alerta&buzzer=0"   # vermelho sem apito
-curl.exe "http://192.168.4.1/atuador?estado=off"       # tudo apagado
+.venv\Scripts\python tools\gerar_pagina_esp32.py      # só se src\client mudou
+$cli = ".tools\arduino-cli\arduino-cli.exe"; $cfg = ".tools\arduino-cli\arduino-cli.yaml"
+& $cli --config-file $cfg compile --fqbn esp32:esp32:esp32 src/esp32/esp32_server
+& $cli --config-file $cfg upload -p COM6 --fqbn esp32:esp32:esp32 src/esp32/esp32_server
 ```
 
-| Comando | Esperado | Se falhar |
-|---|---|---|
-| `teste` | pisca verde/vermelho 2×, beep de 0,5 s | ver linhas abaixo |
-| `normal` | verde aceso | LED invertido (perna longa no GPIO) ou resistor fora da trilha certa |
-| `alerta` | vermelho + **apito contínuo** + LED azul da placa | sem apito: transistor invertido (ver tabela), buzzer (+)/(−) invertido ou sem VIN |
-| `off` | tudo apagado | apito contínuo em `off`: coletor/emissor trocados |
+**Nesta placa:** segure o botão **BOOT** durante todo o upload (ela não entra sozinha em modo de gravação). Solte quando aparecer "Hard resetting" e aperte **EN** uma vez. Na primeira vez, o boot demora ~2 s a mais porque o LittleFS formata a área do log.
 
-Depois, rode o teste automático completo: `python tools\teste_fase1.py rotas` (todas as linhas `[OK]`).
+## 3. Ordem de montagem e energização
 
-## 4. Testes de aceitação (critérios do projeto)
+1. **Desligue o USB** da placa.
+2. Trilho de **GND** da protoboard ligado ao GND do ESP32; trilho de **3V3** ligado ao 3V3 (MAX9814 e OLED); **VIN** só no (+) do buzzer.
+3. Monte o **OLED**: VCC→3V3, GND→GND, SDA→GPIO21, SCL→GPIO22.
+4. Confira: **nada de 5 V/VIN no MAX9814, no OLED nem em GPIO**.
+5. Ligue o USB. Em ~3 s a tela mostra `SENTINELA`, `DESLIGADO`, "Aguardando comando" e, no rodapé, `AP 192.168.4.1` (ou `IP x.x.x.x` se já houver rede configurada).
 
-Abra o dashboard: **duplo clique em `src\client\index.html`** (funciona sem a IA), ou suba a IA (seção 6) e abra `http://localhost:5000/`.
+## 4. Rede para a apresentação
 
-| # | Teste | Como | Passou? |
-|---|---|---|---|
-| 1 | Liga no power bank; AP em até 15 s; dashboard conecta | Cronometre do plugue até o Wi-Fi aparecer | ☐ |
-| 2 | `/sensor` reage a palma e voz; `/audio.wav` toca | Painel "Microfone" + botão "Capturar 1 s" e ▶ | ☐ |
-| 3 | Botões acendem verde/vermelho e acionam o buzzer | Botões Normal / Alerta / Buzzer / Teste | ☐ |
-| 4 | IA estável no playback de falhas e **sem alerta falso em 2 min de silêncio** | Seção 6 | ☐ |
-| 5 | Derrubar e religar: "DESCONECTADO" e reconecta sozinho | Aperte EN na placa; o selo fica vermelho em ~3 s e volta verde sozinho | ☐ |
-| 6 | 30 min sem reiniciar | `python tools\teste_fase1.py resistencia --minutos 30` | ☐ |
+O regulamento pede que a placa **se conecte a uma rede Wi-Fi** e se reconecte sozinha. Recomendado: **hotspot do celular de um integrante** (a rede da faculdade costuma isolar dispositivos e o eduroam exige login, que o ESP32 não faz).
 
-## 5. Power bank
+1. Ligue o hotspot (2,4 GHz; anote nome e senha).
+2. Conecte o notebook (ou celular) ao Wi-Fi **SENTINELA** (senha `sentinela123`) e abra **http://192.168.4.1/**.
+3. *Sistema → Configurar rede Wi-Fi da placa* → nome e senha do hotspot → **Salvar e conectar**.
+4. Em poucos segundos a tela OLED mostra `IP 192.168.x.x`. Conecte o notebook e os celulares ao **hotspot** e abra `http://<esse IP>/`.
+5. A rede fica salva: nas próximas vezes, basta ligar o hotspot antes da placa.
 
-- Ligue a placa no power bank pelo mesmo cabo micro-USB. O AP deve aparecer em até 15 s.
-- Alguns power banks **desligam sozinhos** quando o consumo é baixo (o ESP32 consome ~100–170 mA). Se o AP sumir depois de 30 s a alguns minutos, o power bank desligou. **Plano B:** alimentar pelo USB do notebook (funciona igual).
-- O buzzer de 5 V vem do VIN, que no USB fica em ~4,7 V: normal e suficiente.
+Se o hotspot falhar, tudo continua funcionando pela rede `SENTINELA` (192.168.4.1).
 
-## 6. IA na segunda (com a placa e os atuadores)
-
-Duplo clique em **`tools\iniciar_ia.bat`** (ou, no PowerShell: `.venv\Scripts\python src\ai\server.py`).
-
-Abra `http://localhost:5000/`.
-
-1. **Calibre o silêncio:** com a sala quieta, clique em **Calibrar silêncio (3 s)**.
-2. **Silêncio por 2 min (aceitação 4):** marque "IA comanda os LEDs"; em silêncio o painel ao vivo deve mostrar "Silêncio / sinal fraco" ou "Não é motor de carro" e o LED **não** pode ir para vermelho.
-3. **Playback:** use o kit **`data\demo_sons\<classe>\`** (gere com `.venv\Scripts\python tools\montar_sons_demo.py` se não existir; copie para o celular ou toque no notebook). Toque a ~10 cm do microfone e clique **DIAGNOSTICAR (5 s)** com o som tocando. Repita para normal, batida de pino, ignição, correia e tucho, e com sua voz (deve dar "não é carro"). No simulador, o kit acertou 24 de 24; ao vivo, o alto-falante e o microfone mudam o som, então teste antes da apresentação.
-4. **Se o resultado ao vivo estiver ruim** (é o risco mais provável: o som do celular captado pelo MAX9814 é diferente dos datasets), grave 60 s de cada classe pela própria placa e retreine (≈ 5–10 min no total):
+## 5. Testes de cada atuador
 
 ```powershell
-python src\ai\record.py --classe normal --segundos 60              # som de motor normal tocado no celular
-python src\ai\record.py --classe falha_batida_pino --segundos 60   # knock tocado no celular
-python src\ai\record.py --classe falha_ignicao --segundos 60       # misfire tocado no celular
-python src\ai\record.py --classe falha_correia --segundos 60       # correia tocada no celular
-python src\ai\record.py --classe falha_tucho --segundos 60         # tucho tocado no celular
-python src\ai\record.py --classe nao_carro --segundos 60           # conversa, palmas, ambiente da sala
-python src\ai\prepare_dataset.py
-python src\ai\train.py
+$ip = "192.168.4.1"   # ou o IP mostrado na tela
+curl.exe "http://$ip/atuador?estado=teste"                              # pisca, BEEP; tela "TESTE"
+curl.exe "http://$ip/atuador?estado=normal"                             # verde; tela "NORMAL / Motor normal"
+curl.exe "http://$ip/atuador?estado=alerta&falha=Batida%20de%20pino"    # vermelho + buzzer; tela "ALERTA" piscando + "Batida de pino"
+curl.exe "http://$ip/atuador?estado=off"                                # tudo apagado; tela "DESLIGADO"
 ```
-
-Reinicie o `server.py` para ele carregar o modelo novo.
-
-## 7. Solução de problemas
 
 | Sintoma | Causa provável | Ação |
 |---|---|---|
-| Wi-Fi `SENTINELA` não aparece | Placa sem firmware / reiniciando | Abra o monitor serial (ver `docs/FASE_1_TESTES.md`); aperte EN |
-| Placa reinicia ao acionar o buzzer | Queda de tensão (power bank/cabo fraco) | Use o USB do notebook; confira se o buzzer está no VIN e **não** no 3V3 |
-| LED muito fraco | Resistor de 1 kΩ no lugar do de 220 Ω | Troque (220 Ω = vermelho-vermelho-marrom; 1 kΩ = marrom-preto-vermelho) |
-| Buzzer apita sempre | Transistor invertido ou base sem resistor | Confira a pinagem na seção 1 |
-| Dashboard "DESCONECTADO" | Windows trocou de rede | Reconecte ao `SENTINELA`; desative "conectar automaticamente" nas outras redes |
-| Painel IA "OFFLINE" | `server.py` não está rodando | Rode o comando da seção 6; o resto do dashboard funciona sem ele |
-| IA "sinal fraco" com som alto | Limiar de silêncio alto | Clique "Calibrar silêncio" em silêncio |
-| IA diz "não é carro" para som de motor | Áudio muito diferente do treino | Grave com `record.py` e retreine (seção 6.4) |
+| Tela apagada e log com "Tela OLED não encontrada" | SDA/SCL trocados, VCC/GND trocados ou fio solto | Confira a serigrafia do módulo; troque SDA↔SCL |
+| Tela com chuvisco/lixo | Módulo SH1106 (não SSD1306) | Plano B: o espelho da tela no dashboard mostra o mesmo conteúdo |
+| Buzzer mudo, LEDs ok | Resistor na coluna errada do transistor | Seção 1 (C-B-E, resistor na base) |
 
-## 8. Plano B (ordem de recuo)
+## 6. Testes de aceitação e evidências (regulamento V1.2, seção 6)
 
-1. **IA falhou ao vivo** → apresente o núcleo obrigatório: dashboard + sensor + comandos dos atuadores + modo `auto` por nível (`Modo: Automático`, limiar ~45). Mostre as métricas de `docs/metricas_ia.md` e um diagnóstico com o simulador tocando arquivos do dataset (abaixo).
-2. **Atuadores não funcionam** → o LED azul da placa (GPIO2) mostra o alerta e o dashboard mostra o estado de cada saída.
-3. **Placa queimou** → grave o firmware na reserva (`docs/FASE_1_TESTES.md`, comandos de upload). Leva ~2 min.
-4. **Sem placa nenhuma** → simulador: `python tools\mock_esp32.py --wav-dir data\raw\kwerimoto\prepared\test\engine_knock` + `python src\ai\server.py --esp32 127.0.0.1:8080` e no dashboard use o endereço `127.0.0.1:8080`.
+Com a placa na rede, rode **um comando** que gera todas as evidências de rede:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\coletar_evidencias.ps1 -Alvo <ip-da-placa>
+```
+
+Saída em `docs\evidencias\<data>\` (ping, ARP, porta TCP 80, socket TCP "telnet", `curl -v` de cada rota, atuadores, erros 400/404, log) com `RESUMO.md`. Faça **commit** dessa pasta: é a evidência pedida no relatório.
+
+| # | Teste | Como | Passou? |
+|---|---|---|---|
+| 1 | Placa conecta ao Wi-Fi e mostra IP na tela | Seção 4 | ☐ |
+| 2 | **Reconexão com log**: desligue o hotspot ~30 s e religue | `/log` mostra "PERDIDA" e "RECONECTADO após N s" com data/hora | ☐ |
+| 3 | Página só existe com a placa ligada | Desligue a placa: a página some ("ESP32 DESCONECTADO"); F5 não abre; religue: volta sozinha | ☐ |
+| 4 | Acesso pelo PC **e** pelo celular | `http://<ip>/` nos dois | ☐ |
+| 5 | Sensor reage a palma e voz; áudio toca | Painel Microfone + "Capturar 1 s" | ☐ |
+| 6 | Tela OLED, LEDs e buzzer por comando de rede | Botões e campo "Texto da falha" | ☐ |
+| 7 | Log persistente: sobrevive a reinício | Aperte EN; o log continua com as linhas antigas + "Boot #N" | ☐ |
+| 8 | IP, MAC e status da conexão visíveis | Cartão Sistema do dashboard e `/status` | ☐ |
+| 9 | Evidências coletadas | `coletar_evidencias.ps1` com todas as linhas `[OK]` | ☐ |
+| 10 | 30 min sem reiniciar | `python tools\teste_fase1.py resistencia --host <ip> --minutos 30` | ☐ |
+
+Para a evidência com **Wireshark** (opcional): capture na interface Wi-Fi com o filtro `ip.addr == <ip-da-placa> && tcp.port == 80`, faça um `curl` e mostre o handshake SYN / SYN-ACK / ACK, o GET e a resposta HTTP.
+
+## 7. IA (opcional, diferencial)
+
+Duplo clique em **`tools\iniciar_ia.bat`** (pergunta nada; usa `192.168.4.1`). Se a placa estiver no hotspot, rode `.venv\Scripts\python src\ai\server.py --esp32 <ip-da-placa>`. No Chrome/Edge, aceite "acessar dispositivos da rede local" se aparecer.
+
+1. **Calibrar silêncio** com a sala quieta.
+2. Marque "IA comanda os LEDs": em 2 min de silêncio nada de alerta.
+3. Toque o kit `data\demo_sons\<classe>\` perto do microfone e clique **DIAGNOSTICAR (5 s)**: a tela OLED mostra a falha e a porcentagem.
+
+## 8. Power bank
+
+- O AP aparece em até 15 s. Alguns power banks desligam com consumo baixo (~100–170 mA): se a placa apagar sozinha, use o USB do notebook.
+- Se a placa não subir o AP ao ligar no power bank, aperte **EN** uma vez.
+
+## 9. Solução de problemas
+
+| Sintoma | Causa provável | Ação |
+|---|---|---|
+| Wi-Fi `SENTINELA` não aparece | Placa reiniciando / sem firmware | Aperte EN; veja o monitor serial |
+| Placa não conecta ao hotspot | Hotspot em 5 GHz, senha errada ou rede com login (eduroam) | Use 2,4 GHz; confira em `/log` ("Sem conexão com ...") |
+| Dashboard "ESP32 DESCONECTADO" | Notebook saiu da rede da placa | Reconecte ao Wi-Fi certo |
+| Log com "sem hora" | Placa sem internet e nenhum dashboard aberto ainda | Abra o dashboard: ele acerta o relógio sozinho |
+| Painel IA "OFFLINE" | `server.py` parado, ou aberto no celular | Normal no celular; no notebook rode o serviço |
+| Placa reinicia ao apitar | Queda de tensão | USB do notebook; buzzer no VIN, nunca no 3V3 |
+
+## 10. Plano B (ordem de recuo)
+
+1. **Hotspot falhou** → tudo pela rede `SENTINELA` (192.168.4.1). A reconexão pode ser demonstrada desligando e religando o próprio ponto de acesso do notebook/celular de teste, ou mostrando o log de um teste anterior.
+2. **IA falhou** → núcleo obrigatório: dashboard + sensor + comandos + log + modo `auto` por nível.
+3. **Tela OLED não funciona** → o espelho da tela no dashboard mostra exatamente o que ela exibiria; mostre o log com o aviso e explique a detecção automática.
+4. **Placa queimou** → grave o firmware na reserva (seção 2, ~2 min).

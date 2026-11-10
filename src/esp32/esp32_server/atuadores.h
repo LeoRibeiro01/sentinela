@@ -2,7 +2,8 @@
 //
 // Responsabilidade: guardar o estado do atuador (off/normal/alerta/teste),
 // refletir esse estado nos pinos e implementar o modo "auto" (fallback sem IA).
-// Todas as funções são chamadas só pelo loop() (mesma tarefa), sem concorrência.
+// Mudanças de estado são feitas só pela tarefa principal (sem concorrência); a
+// tarefa da tela OLED apenas LÊ o estado (leitura de 1 byte, atômica).
 #pragma once
 #include <Arduino.h>
 
