@@ -112,17 +112,90 @@
     "urgencia": "media"
   },
   "falha_tucho": {
-    "nome": "Ruído de tucho/válvula",
-    "titulo": "Possível ruído de tuchos/válvulas (\"tec-tec\")",
+    "nome": "Tucho/balancim/válvula",
+    "titulo": "Possível ruído de tuchos, balancins ou válvulas (\"tec-tec\")",
     "causas_provaveis": [
       "Nível ou pressão de óleo baixos.",
       "Óleo velho ou de viscosidade errada.",
-      "Tucho hidráulico com desgaste ou folga de válvula fora do especificado."
+      "Tucho hidráulico com desgaste, balancim gasto ou folga de válvula fora do especificado."
     ],
     "o_que_verificar": [
       "Confira o nível do óleo com o motor frio e em local plano.",
       "Verifique se a troca de óleo está em dia e com o óleo especificado no manual.",
-      "Se o ruído persistir com óleo correto, leve a um mecânico para checar folga de válvulas."
+      "Se o ruído persistir com óleo correto, leve a um mecânico para checar folga de válvulas e balancins."
+    ],
+    "urgencia": "media"
+  },
+  "falha_pistao": {
+    "nome": "Batida de pistão",
+    "titulo": "Possível batida de pistão (\"piston slap\")",
+    "causas_provaveis": [
+      "Folga excessiva entre pistão e cilindro (desgaste do motor).",
+      "Anéis ou saia do pistão gastos.",
+      "Pino do pistão com folga."
+    ],
+    "o_que_verificar": [
+      "Observe se o barulho é mais forte com o motor frio e diminui ao aquecer (típico de folga de pistão).",
+      "Verifique consumo de óleo e fumaça azulada no escapamento.",
+      "Peça a um mecânico um teste de compressão. Batida metálica grave que piora com a rotação pode ser biela: nesse caso, pare de usar o carro."
+    ],
+    "urgencia": "alta"
+  },
+  "falha_homocinetica": {
+    "nome": "Junta homocinética",
+    "titulo": "Possível desgaste da junta homocinética (\"tec-tec\" ao virar)",
+    "causas_provaveis": [
+      "Coifa rasgada: a graxa sai e entra sujeira na junta.",
+      "Junta homocinética gasta pelo uso."
+    ],
+    "o_que_verificar": [
+      "Este ruído aparece com o carro EM MOVIMENTO, principalmente fazendo curvas fechadas e acelerando.",
+      "Com o carro parado, olhe atrás das rodas dianteiras: coifa rasgada e graxa espalhada confirmam a suspeita.",
+      "Troque logo: uma junta que quebra deixa o carro sem tração."
+    ],
+    "urgencia": "media"
+  },
+  "falha_pivo": {
+    "nome": "Pivô de suspensão",
+    "titulo": "Possível folga no pivô da suspensão",
+    "causas_provaveis": [
+      "Pivô (junta esférica) gasto ou com a borracha de proteção rasgada.",
+      "Batidas fortes em buracos e lombadas."
+    ],
+    "o_que_verificar": [
+      "Este ruído aparece com o carro EM MOVIMENTO: estalos ou rangidos em buracos, lombadas e ao esterçar.",
+      "Observe se a direção ficou imprecisa ou se o pneu está gastando de forma irregular.",
+      "Leve a um mecânico com urgência: um pivô que se solta pode fazer a roda perder o apoio."
+    ],
+    "urgencia": "alta"
+  },
+  "falha_freio": {
+    "nome": "Pastilha de freio",
+    "titulo": "Possível pastilha de freio gasta (chiado agudo)",
+    "causas_provaveis": [
+      "Pastilha no fim da vida útil: o indicador metálico de desgaste raspa no disco.",
+      "Pastilha vitrificada ou disco com sulcos.",
+      "Falta de lubrificação nas guias da pinça."
+    ],
+    "o_que_verificar": [
+      "Este ruído aparece com o carro EM MOVIMENTO, ao frear.",
+      "Olhe a espessura da pastilha pela roda e procure sulcos no disco.",
+      "Chiado que vira 'ronco' metálico indica metal raspando no disco: troque as pastilhas imediatamente."
+    ],
+    "urgencia": "alta"
+  },
+  "falha_amortecedor": {
+    "nome": "Amortecedor",
+    "titulo": "Possível amortecedor gasto (batidas na suspensão)",
+    "causas_provaveis": [
+      "Amortecedor sem carga (vazamento de óleo).",
+      "Coxim ou batente do amortecedor gasto.",
+      "Fixações da suspensão soltas."
+    ],
+    "o_que_verificar": [
+      "Este ruído aparece com o carro EM MOVIMENTO, em buracos e lombadas.",
+      "Teste do balanço: empurre a carroceria para baixo e solte. Se balançar mais de uma vez, o amortecedor está fraco.",
+      "Procure óleo escorrendo no corpo do amortecedor. Amortecedor gasto aumenta a distância de frenagem."
     ],
     "urgencia": "media"
   }

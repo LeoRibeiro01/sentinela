@@ -46,6 +46,23 @@
     },
     "own": {"tipo": "pastas", "_comentario": "data/own/<classe>/*.wav gravados com record.py; o nome da pasta é a classe"}
   },
+  "fontes_desativadas": {
+    "_comentario": "Testadas e REPROVADAS (docs/DECISOES.md, rodada 3). prepare_dataset.py ignora esta seção. Para testar de novo: mova a fonte para 'fontes' e as classes novas para classes_diagnostico.",
+    "youtube": {
+      "tipo": "regras",
+      "_comentario": "Vídeos de mecânicos baixados e limpos (sem fala/música) por tools/baixar_youtube.py; lista em data/raw/youtube/fontes_youtube.csv. O sufixo _segment_N agrupa pelo vídeo.",
+      "regras": [
+        {"glob": "falha_homocinetica/*.wav", "classe": "falha_homocinetica"},
+        {"glob": "falha_pivo/*.wav", "classe": "falha_pivo"},
+        {"glob": "falha_freio/*.wav", "classe": "falha_freio"},
+        {"glob": "falha_amortecedor/*.wav", "classe": "falha_amortecedor"},
+        {"glob": "falha_pistao/*.wav", "classe": "falha_pistao"},
+        {"glob": "falha_correia/*.wav", "classe": "falha_correia"},
+        {"glob": "falha_batida_pino/*.wav", "classe": "falha_batida_pino"},
+        {"glob": "falha_tucho/*.wav", "classe": "falha_tucho"}
+      ]
+    }
+  },
   "ruido_sintetico": {
     "_comentario": "Gerado por prepare_dataset.py como 'nao_carro': chiado/zumbido não pode virar 'carro com falha'.",
     "tipos": ["branco", "rosa", "marrom", "zumbido_60hz"],

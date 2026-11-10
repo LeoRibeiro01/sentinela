@@ -67,6 +67,8 @@ def listar_itens(config):
         pastas.append(PASTA_OWN)
     for pasta in pastas:
         fonte = "own" if pasta == PASTA_OWN else pasta.name
+        if fonte in config.get("fontes_desativadas", {}):
+            continue  # testada e reprovada: não entra no treino (ver fontes.json)
         cfg = fontes_cfg.get(fonte, {"tipo": "palavras"})
         if cfg["tipo"] == "manifesto_kwerimoto":
             with open(pasta / "manifest.csv", encoding="utf-8") as f:
