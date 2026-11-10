@@ -7,6 +7,7 @@
 //  2. Serviço de IA (diferencial, localhost:5000): /api/resultado a cada 1 s e
 //     /api/diagnostico sob demanda. Se estiver offline, só o painel de IA é
 //     desabilitado; o resto do dashboard continua funcionando.
+// A cada 5 voltas o laço do ESP32 também busca /log (log persistente da placa).
 // Dados vindos da rede só entram na página via textContent (nunca innerHTML).
 'use strict';
 
@@ -16,21 +17,32 @@ const CHAVE_IP = 'sentinela-esp32';
 const TIMEOUT_MS = 2000;
 const PERIODO_MS = 1000;
 const HISTORICO_PONTOS = 60; // 60 s de histórico, 1 ponto por segundo
-// Se a página veio do próprio serviço de IA (porta 5000), usa a mesma origem.
+// A página normalmente é servida PELO PRÓPRIO ESP32 (http://192.168.4.1/). Nesse caso
+// o endereço da placa é o da própria página. Aberta do disco (file://), usa o campo de IP.
+const SERVIDA_PELA_PLACA = location.protocol.startsWith('http') && location.port !== '5000';
+// Serviço de IA: roda no notebook. Do celular ele fica offline e só o painel de IA é desabilitado.
 const BASE_IA = location.port === '5000' ? '' : 'http://localhost:5000';
 
 const estado = {
   ip: lerIpSalvo(),
   conectado: false,
+  caiu: false, // já esteve conectado e perdeu a placa (ao voltar, recarrega a página)
   falhasSeguidas: 0,
   historico: [],
   atuador: null,
   iaOnline: false,
   diagnosticando: false,
+  relogioEnviado: false, // já mandou a hora do navegador para a placa (quando ela não tem NTP)
+  voltas: 0,             // contador do laço: o log é buscado a cada 5 voltas
+  linhasLog: [],
+  ipPrincipal: '--',
 };
+const NOMES_ESTADO = { normal: 'NORMAL', alerta: 'ALERTA', off: 'DESLIGADO', teste: 'TESTE' };
+const FALHA_PADRAO = { normal: 'Motor normal', alerta: 'Falha detectada', off: 'Aguardando comando', teste: 'Testando atuadores' };
 
 // Endereço do ESP32: ?esp32=... na URL (ex.: simulador) > salvo no navegador > padrão.
 function lerIpSalvo() {
+  if (SERVIDA_PELA_PLACA) return location.host;
   const daUrl = new URLSearchParams(location.search).get('esp32');
   if (daUrl && /^[\w.-]+(:\d{1,5})?$/.test(daUrl)) return daUrl;
   try { return localStorage.getItem(CHAVE_IP) || IP_PADRAO; } catch { return IP_PADRAO; }
@@ -64,7 +76,13 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 // ---------------- ESP32: conexão e polling ----------------
 
 function mostrarConexao(conectado) {
+  // A placa voltou depois de uma queda: recarrega a página PELA placa (prova que ela serve a interface).
+  if (conectado && estado.caiu && SERVIDA_PELA_PLACA) { location.reload(); return; }
+  if (!conectado && estado.conectado) estado.caiu = true;
   estado.conectado = conectado;
+  // Sem ESP32, a interface inteira some atrás de um aviso: nada funciona sem a placa.
+  document.body.classList.toggle('sem-esp32', !conectado);
+  $('texto-sem-esp32').textContent = estado.caiu ? 'ESP32 DESCONECTADO' : 'Conectando ao ESP32...';
   $('selo-esp32').className = `selo ${conectado ? 'selo-on' : 'selo-off'}`;
   $('texto-esp32').textContent = conectado ? `ESP32: CONECTADO (${estado.ip})` : 'ESP32: DESCONECTADO';
   document.querySelectorAll('#cartao-atuador button, #botao-capturar').forEach((b) => { b.disabled = !conectado; });
@@ -82,6 +100,12 @@ async function lacoEsp32() {
       if (!estado.conectado) mostrarConexao(true);
       mostrarStatus(status);
       mostrarSensor(sensor);
+      // Placa sem internet (sem NTP): manda a hora deste aparelho, uma vez, para o log ter data e hora.
+      if (status.hora_ok === false && !estado.relogioEnviado) {
+        estado.relogioEnviado = true;
+        await buscar(urlEsp32(`/relogio?epoch=${Math.floor(Date.now() / 1000)}`));
+      }
+      if (estado.voltas++ % 5 === 0) await atualizarLog();
     } catch {
       estado.falhasSeguidas += 1;
       if (estado.falhasSeguidas >= 2 && estado.conectado) mostrarConexao(false);
@@ -99,6 +123,17 @@ function formatarTempo(segundos) {
 }
 
 function mostrarStatus(s) {
+  const r = s.rede || {};
+  $('hora-esp').textContent = s.hora_ok ? s.hora : 'não ajustada';
+  $('rede-sta').textContent = !r.sta_ssid ? 'não configurada'
+    : r.sta_conectado ? `${r.sta_ssid} (${r.rssi} dBm)` : `${r.sta_ssid} — DESCONECTADA, tentando`;
+  $('ip-sta').textContent = r.sta_conectado ? r.sta_ip : '--';
+  $('mac-sta').textContent = r.sta_mac || '--';
+  $('ip-ap').textContent = r.ap_ip ? `${r.ap_ssid} · ${r.ap_ip}` : '--';
+  $('mac-ap').textContent = r.ap_mac || '--';
+  $('boot').textContent = s.boot ?? '--';
+  estado.ipPrincipal = r.sta_conectado ? `IP ${r.sta_ip}` : `AP ${r.ap_ip || '--'}`;
+  estado.horaEsp = s.hora_ok ? s.hora.slice(11, 16) : '--:--';
   $('uptime').textContent = formatarTempo(s.uptime_s);
   $('taxa').textContent = `${s.fs_real_hz} Hz`;
   $('heap').textContent = `${Math.round(s.heap_livre / 1024)} KB`;
@@ -128,10 +163,40 @@ function mostrarAtuador(a) {
   $('led-verde').classList.toggle('acesa', a.verde === 1);
   $('led-vermelho').classList.toggle('acesa', a.vermelho === 1);
   $('led-buzzer').classList.toggle('acesa', a.buzzer === 1);
-  const nomes = { normal: 'NORMAL', alerta: 'ALERTA', off: 'DESLIGADO', teste: 'TESTE' };
-  $('estado-atuador').textContent = nomes[a.estado] || a.estado;
+  $('estado-atuador').textContent = NOMES_ESTADO[a.estado] || a.estado;
   $('botao-buzzer').classList.toggle('btn-ativo', a.buzzer === 1);
   $('botao-buzzer').textContent = a.buzzer === 1 ? 'Buzzer: LIGADO' : 'Buzzer';
+  // Espelho da tela OLED: mesmas informações que a placa desenha no display.
+  $('oled-estado').textContent = NOMES_ESTADO[a.estado] || a.estado;
+  $('oled-estado').classList.toggle('oled-alerta', a.estado === 'alerta');
+  $('oled-falha').textContent = a.falha || FALHA_PADRAO[a.estado] || '';
+  $('oled-hora').textContent = estado.horaEsp || '--:--';
+  $('oled-rodape').textContent = estado.ipPrincipal;
+  $('oled-presente').textContent = a.tela === undefined ? '--' : a.tela ? 'conectada' : 'não detectada (o resto funciona sem ela)';
+}
+
+// ---------------- Log do sistema (memória flash do ESP32) ----------------
+
+async function atualizarLog() {
+  try {
+    const resposta = await buscar(urlEsp32('/log?linhas=80'), 3000);
+    if (!resposta.ok) return;
+    estado.linhasLog = (await resposta.text()).split('\n').filter((l) => l.trim());
+    mostrarLog();
+  } catch { /* sem resposta: tenta de novo na próxima volta */ }
+}
+
+function mostrarLog() {
+  const filtro = $('filtro-log').value;
+  const linhas = estado.linhasLog.filter((l) => !filtro || l.includes(`[${filtro}`)).reverse(); // mais recente no topo
+  $('lista-log').replaceChildren(...linhas.map((linha) => {
+    const item = document.createElement('li');
+    const nivel = (linha.match(/\[(ERRO|AVISO|INFO)/) || [])[1] || 'INFO';
+    item.className = `log-${nivel.toLowerCase()}`;
+    item.textContent = linha; // textContent: o texto do log nunca vira HTML
+    return item;
+  }));
+  $('info-log').textContent = `${linhas.length} de ${estado.linhasLog.length} linhas · ${new Date().toLocaleTimeString('pt-BR')}`;
 }
 
 // ---------------- Gráfico de histórico (60 s) ----------------
@@ -182,7 +247,9 @@ async function enviarComando(caminho) {
   try {
     const r = await buscarJson(urlEsp32(caminho));
     if (r.atuador) mostrarAtuador(r.atuador);
-    $('msg-comando').textContent = `OK: ${caminho}`;
+    // A senha do Wi-Fi não aparece na mensagem.
+    $('msg-comando').textContent = r.mensagem ? `OK: ${r.mensagem}` : `OK: ${caminho.replace(/senha=[^&]*/, 'senha=***')}`;
+    setTimeout(atualizarLog, 300); // o comando aparece no log da placa
   } catch (erro) {
     $('msg-comando').textContent = `Falhou (${erro.message || 'sem resposta'}). O ESP32 está conectado?`;
   }
@@ -190,8 +257,22 @@ async function enviarComando(caminho) {
 
 function configurarComandos() {
   document.querySelectorAll('[data-comando]').forEach((botao) => {
-    botao.addEventListener('click', () => enviarComando(`/atuador?${botao.dataset.comando}`));
+    botao.addEventListener('click', () => {
+      // Normal e Alerta levam o texto opcional da falha, que aparece na tela OLED.
+      const falha = $('campo-falha').value.trim().replace(/["\\]/g, '');
+      const comFalha = /estado=(normal|alerta)/.test(botao.dataset.comando) && falha;
+      enviarComando(`/atuador?${botao.dataset.comando}${comFalha ? `&falha=${encodeURIComponent(falha)}` : ''}`);
+    });
   });
+  $('form-wifi').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ssid = $('campo-ssid').value.trim();
+    if (!ssid) { $('msg-comando').textContent = 'Informe o nome da rede.'; return; }
+    enviarComando(`/wifi?ssid=${encodeURIComponent(ssid)}&senha=${encodeURIComponent($('campo-senha').value)}`);
+  });
+  $('botao-esquecer').addEventListener('click', () => enviarComando('/wifi?ssid='));
+  $('filtro-log').addEventListener('change', mostrarLog);
+  $('botao-log').addEventListener('click', atualizarLog);
   // O buzzer alterna: mantém o estado atual dos LEDs e só liga/desliga o buzzer.
   $('botao-buzzer').addEventListener('click', () => {
     const a = estado.atuador || { estado: 'off', buzzer: 0 };
@@ -208,6 +289,7 @@ function configurarComandos() {
     const ip = $('campo-ip').value.trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
     if (!/^[\w.-]+(:\d{1,5})?$/.test(ip)) { $('msg-comando').textContent = 'Endereço inválido.'; return; }
     estado.ip = ip;
+    $('link-log').href = urlEsp32('/log?completo=1');
     try { localStorage.setItem(CHAVE_IP, ip); } catch { /* navegador sem armazenamento: ignora */ }
     estado.falhasSeguidas = 2;
     mostrarConexao(false);
@@ -468,6 +550,8 @@ async function diagnosticar() {
 
 function iniciar() {
   $('campo-ip').value = estado.ip;
+  $('form-endereco').hidden = SERVIDA_PELA_PLACA; // o endereço é o da própria página
+  $('link-log').href = urlEsp32('/log?completo=1');
   configurarComandos();
   mostrarConexao(false);
   mostrarIaOnline(false);

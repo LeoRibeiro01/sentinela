@@ -1,31 +1,42 @@
 // esp32_server.ino — Firmware principal do SENTINELA (ESP32 DevKit v1).
 //
-// Cria o ponto de acesso Wi-Fi "SENTINELA" (192.168.4.1) e roda um servidor HTTP
-// na porta 80 com as rotas do contrato (somente GET):
-//   /status  /sensor  /audio.wav?ms=  /atuador?estado=  /config?modo=&limiar=
-// A captura de áudio fica em captura_audio.cpp e os atuadores em atuadores.cpp;
-// este arquivo só faz rede: recebe pedidos, valida parâmetros e monta respostas.
-// O WebServer do Arduino atende um cliente por vez, então os handlers são curtos.
+// O ESP32 é o SERVIDOR da arquitetura cliente-servidor: abre a porta TCP 80, fica
+// passivo aguardando conexões e responde pedidos HTTP (somente GET):
+//   /                  dashboard (HTML+CSS+JS embutidos na flash)
+//   /status /sensor    estado do sistema, rede (IP/MAC) e leituras do microfone
+//   /audio.wav?ms=     trecho de áudio em WAV
+//   /atuador?estado=&falha=   LEDs, buzzer e tela OLED
+//   /config?modo=&limiar=     modo automático (fallback sem IA)
+//   /log?linhas=       log persistente (flash) com ERRO/AVISO/INFO e data/hora
+//   /wifi?ssid=&senha= rede Wi-Fi da estação     /relogio?epoch=  acerta a hora
+// Módulos: captura_audio (microfone), atuadores (LEDs/buzzer), tela_oled (display),
+// rede (Wi-Fi AP+STA), registro_log (log na flash). Este arquivo faz o HTTP:
+// recebe pedidos, valida parâmetros e monta as respostas. O WebServer atende um
+// cliente por vez, então os handlers são curtos.
 #include <WiFi.h>
 #include "servidor_rapido.h"  // WebServer que descarta conexões paradas (ver o arquivo)
 #include "captura_audio.h"
 #include "atuadores.h"
+#include "tela_oled.h"
+#include "rede.h"
+#include "registro_log.h"
+#include "pagina_web.h"  // dashboard embutido (gerado por tools/gerar_pagina_esp32.py)
 
-static const char* SSID_AP = "SENTINELA";
-static const char* SENHA_AP = "sentinela123";
-static const IPAddress IP_AP(192, 168, 4, 1);
-static const IPAddress MASCARA_AP(255, 255, 255, 0);
-static const char* VERSAO = "1.0";
-static constexpr uint32_t INTERVALO_LOG_MS = 10000;  // log de saúde na Serial
+static const char* VERSAO = "2.0";
+static constexpr uint32_t INTERVALO_SAUDE_MS = 10000;  // linha de saúde na Serial
+static constexpr uint32_t HEAP_BAIXO = 40000;          // abaixo disso: AVISO no log
+static constexpr size_t TAMANHO_MAX_FALHA = 40;        // texto da falha (bytes UTF-8)
 
 ServidorRapido servidor(80);
 static uint32_t ultimaJanelaAvaliada = 0;
 static uint32_t ultimoLogMs = 0;
+static uint32_t perdidasNoUltimoLog = 0;
 static volatile uint32_t voltasPorSegundo = 0;  // ritmo da tarefa principal (diagnóstico)
 
 // ---------- Utilidades de resposta ----------
 
-// Todas as respostas liberam CORS (o dashboard roda em outra origem) e proíbem cache.
+// Todas as respostas liberam CORS (o serviço de IA e outras ferramentas leem a API)
+// e proíbem cache (o dado precisa ser sempre o atual).
 static void adicionarCabecalhos() {
   servidor.sendHeader("Access-Control-Allow-Origin", "*");
   servidor.sendHeader("Cache-Control", "no-store");
@@ -34,6 +45,13 @@ static void adicionarCabecalhos() {
 static void responderJson(int codigo, const char* json) {
   adicionarCabecalhos();
   servidor.send(codigo, "application/json; charset=utf-8", json);
+}
+
+// Erro do cliente (400/404): responde e registra AVISO no log, com o IP de quem pediu.
+static void responderErro(int codigo, const char* json) {
+  registrar(LOG_AVISO, "Pedido inválido (%d) em %s de %s", codigo, servidor.uri().c_str(),
+            servidor.client().remoteIP().toString().c_str());
+  responderJson(codigo, json);
 }
 
 // Aceita só dígitos (no máximo 5) dentro de [minimo, maximo]. Evita "12abc" e estouro.
@@ -46,32 +64,71 @@ static bool lerInteiro(const String& texto, long minimo, long maximo, long& valo
   return valor >= minimo && valor <= maximo;
 }
 
+static String ipDoCliente() { return servidor.client().remoteIP().toString(); }
+
 // JSON do atuador, reaproveitado por /status e /atuador.
 static void escreverJsonAtuador(char* destino, size_t tamanho) {
-  snprintf(destino, tamanho, "{\"estado\":\"%s\",\"verde\":%d,\"vermelho\":%d,\"buzzer\":%d}",
-           nomeEstado(estadoAtual()), verdeLigado(), vermelhoLigado(), buzzerLigado());
+  char mensagem[48];
+  lerMensagemTela(mensagem, sizeof(mensagem));
+  snprintf(destino, tamanho,
+           "{\"estado\":\"%s\",\"verde\":%d,\"vermelho\":%d,\"buzzer\":%d,\"tela\":%s,\"falha\":\"%s\"}",
+           nomeEstado(estadoAtual()), verdeLigado(), vermelhoLigado(), buzzerLigado(),
+           telaPresente() ? "true" : "false", mensagem);
+}
+
+// Motivo do último reinício: um reinício inesperado vira ERRO no log.
+static const char* motivoReinicio(bool& inesperado) {
+  inesperado = true;
+  switch (esp_reset_reason()) {
+    case ESP_RST_POWERON: inesperado = false; return "energia ligada";
+    case ESP_RST_SW: inesperado = false; return "reinício por software";
+    case ESP_RST_EXT: inesperado = false; return "botão EN";
+    case ESP_RST_DEEPSLEEP: inesperado = false; return "saída do sono profundo";
+    case ESP_RST_BROWNOUT: return "queda de tensão (brownout)";
+    case ESP_RST_PANIC: return "falha de software (panic)";
+    case ESP_RST_INT_WDT:
+    case ESP_RST_TASK_WDT:
+    case ESP_RST_WDT: return "cão de guarda (watchdog)";
+    default: return "motivo desconhecido";
+  }
 }
 
 // ---------- Rotas ----------
 
-static void rotaRaiz() {
-  responderJson(200, "{\"nome\":\"SENTINELA\",\"versao\":\"1.0\",\"rotas\":"
-                     "[\"/status\",\"/sensor\",\"/audio.wav?ms=1000\",\"/atuador?estado=normal\",\"/config?modo=manual\"]}");
+// GET / — a interface web (dashboard) sai da flash da placa, já comprimida em gzip.
+// O navegador descomprime sozinho (Content-Encoding). "no-store" impede que ele guarde
+// uma cópia: com o ESP32 desligado, a página não abre.
+static void rotaPagina() {
+  servidor.sendHeader("Content-Encoding", "gzip");
+  servidor.sendHeader("Cache-Control", "no-store");
+  servidor.send_P(200, "text/html; charset=utf-8", (const char*)PAGINA_GZ, PAGINA_GZ_TAM);
+}
+
+static void rotaInfo() {
+  responderJson(200, "{\"nome\":\"SENTINELA\",\"versao\":\"2.0\",\"rotas\":[\"/\",\"/status\",\"/sensor\","
+                     "\"/audio.wav?ms=1000\",\"/atuador?estado=normal\",\"/config?modo=manual\",\"/log?linhas=50\","
+                     "\"/wifi?ssid=&senha=\",\"/relogio?epoch=\"]}");
 }
 
 static void rotaStatus() {
-  char atuador[96];
+  char atuador[160];
   escreverJsonAtuador(atuador, sizeof(atuador));
-  char json[400];
+  char rede[420];
+  escreverJsonRede(rede, sizeof(rede));
+  char hora[24];
+  escreverDataHora(hora, sizeof(hora));
+  char json[1100];
   snprintf(json, sizeof(json),
-           "{\"ok\":true,\"versao\":\"%s\",\"uptime_s\":%lu,\"fs_real_hz\":%lu,\"heap_livre\":%lu,"
-           "\"heap_minimo\":%lu,\"modo\":\"%s\",\"limiar\":%u,\"atuador\":%s,"
-           "\"amostras_perdidas\":%lu,\"intervalo_max_us\":%lu,\"clientes_wifi\":%u,\"laco_hz\":%lu}",
-           VERSAO, (unsigned long)(millis() / 1000), (unsigned long)taxaRealHz(),
+           "{\"ok\":true,\"versao\":\"%s\",\"boot\":%lu,\"uptime_s\":%lu,\"hora\":\"%s\",\"hora_ok\":%s,"
+           "\"fs_real_hz\":%lu,\"heap_livre\":%lu,\"heap_minimo\":%lu,\"modo\":\"%s\",\"limiar\":%u,"
+           "\"atuador\":%s,\"rede\":%s,\"amostras_perdidas\":%lu,\"intervalo_max_us\":%lu,"
+           "\"clientes_wifi\":%u,\"laco_hz\":%lu}",
+           VERSAO, (unsigned long)numeroBoot(), (unsigned long)(millis() / 1000), hora,
+           relogioAjustado() ? "true" : "false", (unsigned long)taxaRealHz(),
            (unsigned long)ESP.getFreeHeap(), (unsigned long)ESP.getMinFreeHeap(),
-           modoAutoAtivo() ? "auto" : "manual", limiarAuto(), atuador,
+           modoAutoAtivo() ? "auto" : "manual", limiarAuto(), atuador, rede,
            (unsigned long)amostrasPerdidas(), (unsigned long)intervaloMaximoUs(),
-           WiFi.softAPgetStationNum(), (unsigned long)voltasPorSegundo);
+           clientesNoAp(), (unsigned long)voltasPorSegundo);
   responderJson(200, json);
 }
 
@@ -84,9 +141,19 @@ static void rotaSensor() {
   responderJson(200, json);
 }
 
+// Texto da falha: até 40 bytes, sem aspas, barras ou caracteres de controle (vai no JSON e na tela).
+static bool falhaValida(const String& texto) {
+  if (texto.length() > TAMANHO_MAX_FALHA) return false;
+  for (size_t i = 0; i < texto.length(); i++) {
+    char c = texto[i];
+    if (c == '"' || c == '\\' || ((uint8_t)c < 32)) return false;
+  }
+  return true;
+}
+
 static void rotaAtuador() {
   if (!servidor.hasArg("estado")) {
-    responderJson(400, "{\"erro\":\"informe estado=normal|alerta|off|teste\"}");
+    responderErro(400, "{\"erro\":\"informe estado=normal|alerta|off|teste\"}");
     return;
   }
   bool temBuzzer = servidor.hasArg("buzzer");
@@ -94,24 +161,40 @@ static void rotaAtuador() {
   if (temBuzzer) {
     String valor = servidor.arg("buzzer");
     if (valor != "0" && valor != "1") {
-      responderJson(400, "{\"erro\":\"buzzer deve ser 0 ou 1\"}");
+      responderErro(400, "{\"erro\":\"buzzer deve ser 0 ou 1\"}");
       return;
     }
     buzzer = (valor == "1");
   }
+  String falha = servidor.arg("falha");  // vazio se não veio
+  if (!falhaValida(falha)) {
+    responderErro(400, "{\"erro\":\"falha deve ter ate 40 caracteres, sem aspas ou barras\"}");
+    return;
+  }
 
   String estado = servidor.arg("estado");
+  EstadoAtuador anterior = estadoAtual();
   if (estado == "normal") definirEstado(ATUADOR_NORMAL, temBuzzer, buzzer);
   else if (estado == "alerta") definirEstado(ATUADOR_ALERTA, temBuzzer, buzzer);
   else if (estado == "off") definirEstado(ATUADOR_OFF);
   else if (estado == "teste") definirEstado(ATUADOR_TESTE);
   else {
-    responderJson(400, "{\"erro\":\"estado invalido; use normal, alerta, off ou teste\"}");
+    responderErro(400, "{\"erro\":\"estado invalido; use normal, alerta, off ou teste\"}");
     return;
   }
-  char atuador[96];
+  // O teste não apaga a mensagem: quando ele termina, o estado anterior volta com ela.
+  if (estado != "teste") definirMensagemTela(falha.c_str());
+
+  // Registra mudanças de estado (a IA repete o mesmo comando várias vezes; isso não vira log).
+  if (estadoAtual() != anterior || falha.length() || temBuzzer) {
+    registrar(estadoAtual() == ATUADOR_ALERTA ? LOG_AVISO : LOG_INFO, "Atuador -> %s%s%s%s (comando de %s)",
+              nomeEstado(estadoAtual()), falha.length() ? " | falha: " : "", falha.c_str(),
+              temBuzzer ? (buzzer ? " | buzzer ligado" : " | buzzer desligado") : "", ipDoCliente().c_str());
+  }
+
+  char atuador[160];
   escreverJsonAtuador(atuador, sizeof(atuador));
-  char json[128];
+  char json[200];
   snprintf(json, sizeof(json), "{\"ok\":true,\"atuador\":%s}", atuador);
   responderJson(200, json);
 }
@@ -124,17 +207,73 @@ static void rotaConfig() {
     String modo = servidor.arg("modo");
     if (modo == "auto") novoAuto = true;
     else if (modo == "manual") novoAuto = false;
-    else { responderJson(400, "{\"erro\":\"modo deve ser auto ou manual\"}"); return; }
+    else { responderErro(400, "{\"erro\":\"modo deve ser auto ou manual\"}"); return; }
   }
   if (servidor.hasArg("limiar") && !lerInteiro(servidor.arg("limiar"), 0, 100, novoLimiar)) {
-    responderJson(400, "{\"erro\":\"limiar deve ser inteiro de 0 a 100\"}");
+    responderErro(400, "{\"erro\":\"limiar deve ser inteiro de 0 a 100\"}");
     return;
   }
+  if (novoAuto != modoAutoAtivo() || novoLimiar != limiarAuto())
+    registrar(LOG_INFO, "Configuração: modo %s, limiar %ld (comando de %s)", novoAuto ? "auto" : "manual",
+              novoLimiar, ipDoCliente().c_str());
   configurarModoAuto(novoAuto, (uint8_t)novoLimiar);
   char json[80];
   snprintf(json, sizeof(json), "{\"ok\":true,\"modo\":\"%s\",\"limiar\":%u}",
            modoAutoAtivo() ? "auto" : "manual", limiarAuto());
   responderJson(200, json);
+}
+
+// GET /log?linhas=100 (padrão 100, máx. 500) ou /log?completo=1 (arquivos inteiros).
+static void rotaLog() {
+  long linhas = 100;
+  if (servidor.hasArg("linhas") && !lerInteiro(servidor.arg("linhas"), 1, 500, linhas)) {
+    responderErro(400, "{\"erro\":\"linhas deve ser inteiro de 1 a 500\"}");
+    return;
+  }
+  enviarLog(servidor, (uint32_t)linhas, servidor.arg("completo") == "1");
+}
+
+// GET /relogio?epoch=1762790400 — acerta a data/hora (segundos desde 1970, UTC).
+// Usado pelo dashboard quando a placa não tem internet para o NTP.
+static void rotaRelogio() {
+  String texto = servidor.arg("epoch");
+  bool valido = texto.length() == 10;
+  for (size_t i = 0; valido && i < texto.length(); i++) valido = isDigit(texto[i]);
+  time_t epoch = valido ? (time_t)strtoul(texto.c_str(), nullptr, 10) : 0;
+  if (!valido || epoch < 1700000000) {
+    responderErro(400, "{\"erro\":\"epoch deve ser o horario Unix em segundos (10 digitos)\"}");
+    return;
+  }
+  bool jaTinhaHora = relogioAjustado();
+  ajustarRelogio(epoch, "navegador");
+  if (jaTinhaHora) registrar(LOG_INFO, "Relógio reajustado por %s", ipDoCliente().c_str());
+  char hora[24];
+  escreverDataHora(hora, sizeof(hora));
+  char json[80];
+  snprintf(json, sizeof(json), "{\"ok\":true,\"hora\":\"%s\"}", hora);
+  responderJson(200, json);
+}
+
+// GET /wifi?ssid=MinhaRede&senha=12345678 — rede que a estação deve usar (salva na NVS).
+// GET /wifi?ssid= (vazio) esquece a rede. A resposta sai ANTES de reconfigurar o rádio.
+static void rotaWifi() {
+  if (!servidor.hasArg("ssid")) {
+    responderErro(400, "{\"erro\":\"informe ssid= (e senha=); ssid vazio esquece a rede\"}");
+    return;
+  }
+  String ssid = servidor.arg("ssid");
+  String senha = servidor.arg("senha");
+  const char* erro = validarRedeWifi(ssid, senha);
+  if (erro) {
+    char json[160];
+    snprintf(json, sizeof(json), "{\"erro\":\"%s\"}", erro);
+    responderErro(400, json);
+    return;
+  }
+  responderJson(200, ssid.length() ? "{\"ok\":true,\"mensagem\":\"conectando; acompanhe em /status e /log\"}"
+                                   : "{\"ok\":true,\"mensagem\":\"rede esquecida; so o ponto de acesso fica ativo\"}");
+  servidor.client().flush();
+  configurarRedeWifi(ssid, senha);
 }
 
 // Escreve um inteiro little-endian (formato exigido pelo WAV) em `destino`.
@@ -147,7 +286,7 @@ static void escreverLE(uint8_t* destino, uint32_t valor, uint8_t bytes) {
 static void rotaAudio() {
   long duracaoMs = 1000;
   if (servidor.hasArg("ms") && !lerInteiro(servidor.arg("ms"), 200, 2000, duracaoMs)) {
-    responderJson(400, "{\"erro\":\"ms deve ser inteiro de 200 a 2000\"}");
+    responderErro(400, "{\"erro\":\"ms deve ser inteiro de 200 a 2000\"}");
     return;
   }
   uint32_t taxa = taxaRealHz() ? taxaRealHz() : TAXA_ALVO_HZ;
@@ -189,64 +328,74 @@ static void rotaAudio() {
 }
 
 static void rotaNaoEncontrada() {
-  responderJson(404, "{\"erro\":\"rota nao encontrada\"}");
+  responderErro(404, "{\"erro\":\"rota nao encontrada\"}");
+}
+
+// ---------- Saúde do sistema ----------
+
+// A cada 10 s: linha de saúde na Serial (base do teste de 30 min) e avisos no log
+// quando algo sai do normal (memória baixa, perda de amostras).
+static void verificarSaude() {
+  if (millis() - ultimoLogMs < INTERVALO_SAUDE_MS) return;
+  ultimoLogMs = millis();
+  LeituraSensor l = lerSensor();
+  Serial.printf("[saude] uptime=%lus heap=%lu heap_min=%lu fs=%luHz perdidas=%lu int_max=%luus "
+                "rms=%u adc=[%u..%u] clientes=%u estado=%s laco=%luHz sta=%s\n",
+                (unsigned long)(millis() / 1000), (unsigned long)ESP.getFreeHeap(),
+                (unsigned long)ESP.getMinFreeHeap(), (unsigned long)taxaRealHz(),
+                (unsigned long)amostrasPerdidas(), (unsigned long)intervaloMaximoUs(),
+                l.rms, l.adcMin, l.adcMax, clientesNoAp(), nomeEstado(estadoAtual()),
+                (unsigned long)voltasPorSegundo, staConectado() ? "sim" : "nao");
+  if (ESP.getFreeHeap() < HEAP_BAIXO)
+    registrar(LOG_AVISO, "Memória livre baixa: %lu bytes", (unsigned long)ESP.getFreeHeap());
+  uint32_t perdidas = amostrasPerdidas();
+  if (perdidas - perdidasNoUltimoLog > 1600)  // > 1% das amostras em 10 s
+    registrar(LOG_AVISO, "Captura de áudio perdeu %lu amostras em 10 s",
+              (unsigned long)(perdidas - perdidasNoUltimoLog));
+  perdidasNoUltimoLog = perdidas;
 }
 
 // ---------- Inicialização e laço principal ----------
 
-static void iniciarPontoDeAcesso() {
-  WiFi.persistent(false);  // não grava config na flash a cada boot
-  WiFi.mode(WIFI_AP);
-  WiFi.softAPConfig(IP_AP, IP_AP, MASCARA_AP);
-  // Canal 6, rede visível, até 4 clientes (notebook + reserva).
-  if (!WiFi.softAP(SSID_AP, SENHA_AP, 6, false, 4)) {
-    Serial.println("ERRO: falha ao iniciar o ponto de acesso");
-  }
-  WiFi.setSleep(false);  // sem economia de energia: menor latência e menos quedas
-  Serial.printf("AP %s ativo em http://%s/\n", SSID_AP, WiFi.softAPIP().toString().c_str());
-}
-
-// Log de saúde a cada 10 s: base para o teste de 30 min (heap estável, sem reinício).
-static void registrarSaude() {
-  if (millis() - ultimoLogMs < INTERVALO_LOG_MS) return;
-  ultimoLogMs = millis();
-  LeituraSensor l = lerSensor();
-  Serial.printf("[saude] uptime=%lus heap=%lu heap_min=%lu fs=%luHz perdidas=%lu int_max=%luus "
-                "rms=%u adc=[%u..%u] clientes=%u estado=%s laco=%luHz\n",
-                (unsigned long)(millis() / 1000), (unsigned long)ESP.getFreeHeap(),
-                (unsigned long)ESP.getMinFreeHeap(), (unsigned long)taxaRealHz(),
-                (unsigned long)amostrasPerdidas(), (unsigned long)intervaloMaximoUs(),
-                l.rms, l.adcMin, l.adcMax, WiFi.softAPgetStationNum(), nomeEstado(estadoAtual()),
-                (unsigned long)voltasPorSegundo);
-}
-
 void setup() {
   Serial.begin(115200);
   Serial.println("\nSENTINELA iniciando...");
-  iniciarAtuadores();
-  iniciarPontoDeAcesso();
+  bool logOk = iniciarLog();  // primeiro: tudo o que vem depois já pode ser registrado
+  bool inesperado = false;
+  const char* motivo = motivoReinicio(inesperado);
+  registrar(inesperado ? LOG_ERRO : LOG_INFO, "=== Boot #%lu: SENTINELA v%s ligado (%s) ===",
+            (unsigned long)numeroBoot(), VERSAO, motivo);
+  if (!logOk) registrar(LOG_ERRO, "Memória flash do log indisponível: registros só na Serial");
 
-  servidor.on("/", HTTP_GET, rotaRaiz);
+  iniciarAtuadores();
+  iniciarRede();
+
+  servidor.on("/", HTTP_GET, rotaPagina);
+  servidor.on("/info", HTTP_GET, rotaInfo);
   servidor.on("/status", HTTP_GET, rotaStatus);
   servidor.on("/sensor", HTTP_GET, rotaSensor);
   servidor.on("/audio.wav", HTTP_GET, rotaAudio);
   servidor.on("/atuador", HTTP_GET, rotaAtuador);
   servidor.on("/config", HTTP_GET, rotaConfig);
+  servidor.on("/log", HTTP_GET, rotaLog);
+  servidor.on("/relogio", HTTP_GET, rotaRelogio);
+  servidor.on("/wifi", HTTP_GET, rotaWifi);
   servidor.onNotFound(rotaNaoEncontrada);
   servidor.begin();
+  registrar(LOG_INFO, "Servidor HTTP ouvindo na porta TCP 80");
 
-  if (!iniciarCaptura()) Serial.println("ERRO: falha ao criar a tarefa de captura");
+  if (!iniciarCaptura()) registrar(LOG_ERRO, "Falha ao iniciar a captura de áudio (microfone)");
+  iniciarTela();
   // Pilha de 8 KB (igual à do loop() do Arduino); prioridade 1, abaixo do Wi-Fi.
   xTaskCreatePinnedToCore(tarefaPrincipal, "principal", 8192, nullptr, 1, nullptr, 0);
-  Serial.printf("Servidor HTTP pronto. Heap livre: %lu bytes\n", (unsigned long)ESP.getFreeHeap());
+  Serial.printf("Pronto. Heap livre: %lu bytes\n", (unsigned long)ESP.getFreeHeap());
 }
 
-// Tarefa principal: servidor HTTP, modo auto, sequência de teste e log de saúde.
+// Tarefa principal: servidor HTTP, modo auto, reconexão Wi-Fi, gravação do log e saúde.
 // Roda no NÚCLEO 0, longe da captura de áudio (núcleo 1). Medido na placa em 09/11:
 // no núcleo 1, a captura a 16 kHz (prioridade maior) deixava só ~22 voltas/s para
 // o loop(); cada pedido HTTP precisava de várias voltas e expirava no navegador.
-// No núcleo 0 ela divide a CPU só com o Wi-Fi, que tem bastante folga.
-// Por ser a ÚNICA tarefa que mexe nos atuadores, não há condição de corrida.
+// É a ÚNICA tarefa que mexe nos atuadores e que escreve na flash: sem condição de corrida.
 static void tarefaPrincipal(void*) {
   uint32_t voltas = 0, inicioContagemMs = millis();
   for (;;) {
@@ -257,10 +406,20 @@ static void tarefaPrincipal(void*) {
     LeituraSensor l = lerSensor();
     if (l.numeroJanela != ultimaJanelaAvaliada) {
       ultimaJanelaAvaliada = l.numeroJanela;
+      EstadoAtuador antes = estadoAtual();
       processarJanelaAuto(l.nivel);
+      if (estadoAtual() != antes && estadoAtual() == ATUADOR_ALERTA) {
+        definirMensagemTela("Ruido acima do limiar");
+        registrar(LOG_AVISO, "Modo auto: nível %u acima do limiar %u -> ALERTA", l.nivel, limiarAuto());
+      } else if (estadoAtual() != antes && estadoAtual() == ATUADOR_NORMAL) {
+        definirMensagemTela("");
+        registrar(LOG_INFO, "Modo auto: nível voltou ao normal -> NORMAL");
+      }
     }
     atualizarAtuadores();
-    registrarSaude();
+    processarRede();
+    processarLog();
+    verificarSaude();
 
     voltas++;
     if (millis() - inicioContagemMs >= 1000) {

@@ -9,7 +9,8 @@ O que faz:
   - GET /api/resultado : estado ao vivo para o dashboard.
   - GET /api/config?esp32=&demo=&ia_atuador=&limiar_silencio=&limiar_confianca=
   - GET /api/calibrar : mede 3 s de silêncio e ajusta o limiar de "sinal fraco".
-  - Serve o dashboard (src/client) em http://localhost:5000/.
+  - GET / : redireciona para o dashboard, que é servido PELO ESP32 (http://<esp32>/).
+    Este serviço não entrega a página: sem a placa, a interface não abre.
 Se este serviço cair, o dashboard e o ESP32 continuam funcionando (núcleo sem IA).
 Tudo offline. Uso (venv ativo):
     python src/ai/server.py [--esp32 192.168.4.1] [--porta 5000]
@@ -26,7 +27,7 @@ import urllib.request
 from collections import Counter, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 import numpy as np
 
@@ -35,9 +36,6 @@ from analise import Analisador  # noqa: E402
 from audio_util import rms, wav_bytes_para_sinal  # noqa: E402
 from yamnet_util import Yamnet  # noqa: E402
 
-PASTA_CLIENTE = Path(__file__).resolve().parents[1] / "client"
-ARQUIVOS_CLIENTE = {"/": "index.html", "/index.html": "index.html", "/app.js": "app.js", "/style.css": "style.css"}
-TIPOS = {".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8"}
 BASE = json.loads((Path(__file__).parent / "diagnosticos.json").read_text(encoding="utf-8"))
 NOMES = {c: v["nome"] for c, v in BASE.items() if not c.startswith("_")}
 
@@ -71,11 +69,21 @@ def baixar_audio(ms=1000):
     return wav_bytes_para_sinal(pedir_esp32(f"/audio.wav?ms={ms}"))
 
 
-def comandar_atuador(estado):
-    """Envia o estado ao ESP32. Falha de rede não derruba o serviço: só registra."""
+def texto_para_tela(texto):
+    """Corta o texto em 40 bytes UTF-8 (limite do ESP32) sem quebrar uma letra acentuada."""
+    texto = texto.replace('"', "").replace("\\", "")
+    while len(texto.encode("utf-8")) > 40:
+        texto = texto[:-1]
+    return texto
+
+
+def comandar_atuador(estado, falha=""):
+    """Envia o estado (e o texto da falha, mostrado na tela OLED) ao ESP32.
+    Falha de rede não derruba o serviço: só registra."""
     global ultimo_comando
     try:
-        pedir_esp32(f"/atuador?estado={estado}", timeout=3)
+        extra = f"&falha={quote(texto_para_tela(falha))}" if falha else ""
+        pedir_esp32(f"/atuador?estado={estado}{extra}", timeout=3)
         ultimo_comando = estado
         return True
     except (urllib.error.URLError, OSError):
@@ -116,7 +124,10 @@ def suavizar(r):
     elif contagem["normal"] >= 3:
         vivo["estado_suave"] = "normal"
     if config["ia_atuador"] and vivo["estado_suave"] and vivo["estado_suave"] != ultimo_comando:
-        comandar_atuador(vivo["estado_suave"])
+        falha = ""
+        if vivo["estado_suave"] == "alerta" and r["status"] == "ok":
+            falha = f"IA: {analisador.ranking(r['probs'], NOMES)[0]['nome']}"
+        comandar_atuador(vivo["estado_suave"], falha)
 
 
 def laco_ao_vivo():
@@ -202,10 +213,12 @@ def diagnosticar(segundos):
     if top["prob"] >= config["limiar_confianca"]:
         resposta.update(status="ok", diagnostico=montar_diagnostico(top["classe"]))
         estado = "normal" if top["classe"] == "normal" else "alerta"
+        falha = f"{top['nome']} ({top['prob']}%)"
     else:
         resposta.update(status="inconclusivo", diagnostico=montar_diagnostico("_inconclusivo"))
         estado = "normal"
-    if comandar_atuador(estado):
+        falha = "Diagnostico inconclusivo"
+    if comandar_atuador(estado, falha):
         resposta["atuador"] = estado
     votos.clear()  # recomeça a suavização do modo ao vivo a partir do diagnóstico
     return resposta
@@ -235,9 +248,19 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", tipo)
         self.send_header("Content-Length", str(len(corpo)))
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(corpo)
+
+    def do_OPTIONS(self):
+        # Pré-verificação do navegador: a página vem do ESP32 (rede local) e chama este
+        # serviço em localhost. Chrome/Edge perguntam antes se isso é permitido.
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
+        self.end_headers()
 
     def do_GET(self):
         url = urlparse(self.path)
@@ -248,9 +271,13 @@ class Handler(BaseHTTPRequestHandler):
             self.responder(500, {"erro": f"{type(e).__name__}: {e}"})
 
     def rotear(self, caminho, q):
-        if caminho in ARQUIVOS_CLIENTE:
-            arquivo = PASTA_CLIENTE / ARQUIVOS_CLIENTE[caminho]
-            return self.responder(200, arquivo.read_bytes(), TIPOS[arquivo.suffix])
+        if caminho in ("/", "/index.html"):
+            # A interface mora no ESP32: manda o navegador para lá (302 = redirecionamento).
+            self.send_response(302)
+            self.send_header("Location", f"http://{config['esp32']}/")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            return None
         if caminho == "/api/resultado":
             return self.responder(200, {
                 "ok": True, "modelo": analisador.modelo is not None, "classes": analisador.classes,

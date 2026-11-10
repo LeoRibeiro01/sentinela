@@ -21,6 +21,8 @@
   --raio: 16px;
   --sombra: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 12px 32px -18px rgba(0, 0, 0, .9);
   --suave-anim: cubic-bezier(.2, .7, .2, 1);
+  /* emblema (escudo + olho), usado no topo e na tela de 'sem placa' */
+  --emblema: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill-rule='evenodd' d='M32 3 56 11V30C56 45 45.5 55.5 32 61 18.5 55.5 8 45 8 30V11ZM15 32C20 24 26 20.5 32 20.5S44 24 49 32C44 40 38 43.5 32 43.5S20 40 15 32ZM32 25.5A6.5 6.5 0 1 1 32 38.5 6.5 6.5 0 1 1 32 25.5Z'/%3E%3C/svg%3E");
 }
 
 * { box-sizing: border-box; }
@@ -75,8 +77,8 @@ h4 { font-size: .8rem; color: var(--suave); margin-top: 1rem; text-transform: up
   content: ""; grid-row: 1 / span 2;
   width: 52px; height: 52px;
   background: var(--texto);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill-rule='evenodd' d='M32 3 56 11V30C56 45 45.5 55.5 32 61 18.5 55.5 8 45 8 30V11ZM15 32C20 24 26 20.5 32 20.5S44 24 49 32C44 40 38 43.5 32 43.5S20 40 15 32ZM32 25.5A6.5 6.5 0 1 1 32 38.5 6.5 6.5 0 1 1 32 25.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill-rule='evenodd' d='M32 3 56 11V30C56 45 45.5 55.5 32 61 18.5 55.5 8 45 8 30V11ZM15 32C20 24 26 20.5 32 20.5S44 24 49 32C44 40 38 43.5 32 43.5S20 40 15 32ZM32 25.5A6.5 6.5 0 1 1 32 38.5 6.5 6.5 0 1 1 32 25.5Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  -webkit-mask: var(--emblema) center / contain no-repeat;
+  mask: var(--emblema) center / contain no-repeat;
   opacity: .92;
 }
 .marca h1 { font-size: 1.9rem; letter-spacing: .28em; font-weight: 700; margin: 0; line-height: 1.1; }
@@ -122,7 +124,7 @@ input[type="checkbox"] { accent-color: var(--destaque); width: 1.1rem; height: 1
 /* ---------- Grade e cartões ---------- */
 .grade {
   display: grid; gap: 1.25rem; padding: 1.5rem 1.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
 }
 .cartao {
   background: linear-gradient(180deg, var(--cartao-2), var(--cartao));
@@ -130,13 +132,9 @@ input[type="checkbox"] { accent-color: var(--destaque); width: 1.1rem; height: 1
   padding: 1.4rem 1.5rem; min-width: 0;
   box-shadow: var(--sombra);
   transition: border-color .3s;
-  animation: surgir .6s var(--suave-anim) both;
+  animation: surgir .6s var(--suave-anim);
 }
 .cartao:hover { border-color: var(--borda-forte); }
-.grade > .cartao:nth-child(2) { animation-delay: .06s; }
-.grade > .cartao:nth-child(3) { animation-delay: .12s; }
-.grade > .cartao:nth-child(4) { animation-delay: .18s; }
-.grade > .cartao:nth-child(5) { animation-delay: .24s; }
 @keyframes surgir {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
@@ -181,7 +179,8 @@ canvas {
   border-bottom: 1px solid var(--borda); padding: .6rem 0;
 }
 .metricas-coluna div:last-child { border-bottom: none; }
-.metricas-coluna dd { font-size: 1.15rem; }
+.metricas-coluna dd { font-size: 1.05rem; text-align: right; font-variant-numeric: tabular-nums; word-break: break-all; }
+.metricas-coluna div { gap: 1rem; }
 
 /* ---------- Atuadores ---------- */
 .leds { display: flex; gap: 2.5rem; justify-content: center; margin: .5rem 0 1.1rem; }
@@ -287,22 +286,18 @@ button:disabled { opacity: .38; cursor: not-allowed; }
   font-weight: 600; font-size: .9rem; letter-spacing: .05em;
 }
 
-.ia-colunas { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); margin-top: 1.25rem; }
+.ia-colunas { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); margin-top: 1.25rem; }
 .diag-status { font-size: 1.3rem; font-weight: 600; }
 .ranking .linha {
   display: grid; grid-template-columns: 11rem 1fr 4rem; gap: .75rem; align-items: center; margin: .5rem 0;
-  animation: surgir .45s var(--suave-anim) both;
+  animation: surgir .45s var(--suave-anim);
 }
-.ranking .linha:nth-child(2) { animation-delay: .05s; }
-.ranking .linha:nth-child(3) { animation-delay: .1s; }
-.ranking .linha:nth-child(4) { animation-delay: .15s; }
-.ranking .linha:nth-child(5) { animation-delay: .2s; }
 .ranking .linha > span:first-child { color: var(--suave); font-size: .95rem; }
 .ranking .linha.top > span:first-child { color: var(--texto); font-weight: 600; }
 .ranking .barra { height: 12px; background: var(--fundo-2); border: 1px solid var(--borda); border-radius: 999px; overflow: hidden; }
 .ranking .barra div {
   height: 100%; border-radius: 999px; background: rgba(56, 189, 248, .55);
-  animation: crescer .7s var(--suave-anim) both; transform-origin: left;
+  animation: crescer .7s var(--suave-anim); transform-origin: left;
 }
 .ranking .linha.top .barra div { background: linear-gradient(90deg, #7dd3fc, var(--destaque)); box-shadow: 0 0 12px rgba(56, 189, 248, .45); }
 @keyframes crescer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -310,7 +305,7 @@ button:disabled { opacity: .38; cursor: not-allowed; }
 
 .diag-cartao {
   background: var(--fundo-2); border: 1px solid var(--borda-forte); border-radius: 14px;
-  padding: 1.1rem 1.35rem; animation: surgir .5s var(--suave-anim) both;
+  padding: 1.1rem 1.35rem; animation: surgir .5s var(--suave-anim);
 }
 .diag-cabecalho { display: flex; justify-content: space-between; gap: 1rem; align-items: start; }
 .urgencia {
@@ -340,11 +335,81 @@ button:disabled { opacity: .38; cursor: not-allowed; }
 
 /* ---------- Áudio ---------- */
 audio { width: 100%; margin-top: 1rem; filter: invert(.88) hue-rotate(180deg) saturate(.6); border-radius: 999px; }
-.audio-graficos { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.audio-graficos { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
 #grafico-historico { height: 200px; }
 
 .rodape {
   text-align: center; color: var(--apagado); padding: 1.25rem 1rem 1.75rem; font-size: .85rem; letter-spacing: .06em;
+}
+
+/* ---------- Espelho da tela OLED ---------- */
+.oled {
+  width: 100%; max-width: 300px; aspect-ratio: 2 / 1; margin: 0 auto .5rem;
+  background: #000; border: 6px solid #1a1f27; border-radius: 8px; padding: .4rem .6rem;
+  display: flex; flex-direction: column; justify-content: space-between;
+  font-family: Consolas, "Courier New", monospace; color: #cfeffd; letter-spacing: .04em;
+  box-shadow: inset 0 0 18px rgba(56, 189, 248, .08);
+}
+.oled-topo { display: flex; justify-content: space-between; font-size: .75rem; border-bottom: 1px solid #cfeffd; padding-bottom: .15rem; }
+.oled-estado { text-align: center; font-size: 1.45rem; font-weight: 700; letter-spacing: .1em; }
+.oled-estado.oled-alerta { background: #cfeffd; color: #000; animation: piscarOled 1s steps(1) infinite; }
+@keyframes piscarOled { 50% { background: transparent; color: #cfeffd; } }
+.oled-falha { text-align: center; font-size: .8rem; min-height: 1.1em; }
+.oled-rodape { font-size: .72rem; }
+.campo-falha { display: flex; flex-direction: column; gap: .35rem; color: var(--suave); font-size: .9rem; margin: .8rem 0; }
+
+/* ---------- Configuração de Wi-Fi ---------- */
+.config-wifi { margin-top: 1rem; border-top: 1px solid var(--borda); padding-top: .9rem; }
+.config-wifi summary { cursor: pointer; color: var(--suave); font-size: .9rem; }
+.config-wifi summary:hover { color: var(--texto); }
+.form-wifi { display: flex; flex-direction: column; gap: .7rem; margin-top: .9rem; }
+.form-wifi label { display: flex; flex-direction: column; gap: .3rem; color: var(--suave); font-size: .85rem; }
+
+/* ---------- Log do sistema ---------- */
+a.btn { text-decoration: none; display: inline-block; }
+.lista-log {
+  list-style: none; margin: 1rem 0 0; padding: .4rem 0; max-height: 360px; overflow: auto;
+  background: var(--fundo-2); border: 1px solid var(--borda); border-radius: 10px;
+  font-family: Consolas, "Courier New", monospace; font-size: .82rem;
+}
+.lista-log li { padding: .3rem .9rem; border-left: 3px solid transparent; white-space: pre-wrap; word-break: break-word; }
+.lista-log li:nth-child(odd) { background: rgba(255, 255, 255, .015); }
+.lista-log .log-info { color: var(--suave); border-left-color: rgba(56, 189, 248, .4); }
+.lista-log .log-aviso { color: #fde68a; border-left-color: var(--amarelo); }
+.lista-log .log-erro { color: #fca5a5; border-left-color: var(--vermelho); background: rgba(239, 68, 68, .06); }
+
+/* ---------- Sem ESP32: a interface inteira some ---------- */
+.tela-sem-esp32 { display: none; }
+body.sem-esp32 > :not(.tela-sem-esp32) { display: none !important; }
+body.sem-esp32 .tela-sem-esp32 {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 2rem 1.25rem; text-align: center; gap: .5rem;
+  animation: surgir .5s var(--suave-anim);
+}
+.emblema-grande {
+  width: 96px; height: 96px; margin-bottom: 1rem; background: var(--suave);
+  -webkit-mask: var(--emblema) center / contain no-repeat;
+  mask: var(--emblema) center / contain no-repeat;
+  animation: respirar 2.4s ease-in-out infinite;
+}
+@keyframes respirar { 50% { opacity: .35; transform: scale(.96); } }
+.tela-sem-esp32 h2 { font-size: 1.5rem; color: #f87171; letter-spacing: .14em; margin: 0; }
+.tela-sem-esp32 h2::before { display: none; }
+.tela-sem-esp32 p { color: var(--suave); max-width: 34rem; margin: .5rem 0 0; }
+
+/* ---------- Celular ---------- */
+@media (max-width: 640px) {
+  body { font-size: 16px; }
+  .topo { position: static; padding: .8rem 1rem; }
+  .marca::before { width: 42px; height: 42px; }
+  .marca h1 { font-size: 1.45rem; letter-spacing: .2em; }
+  .selo { font-size: .85rem; padding: .35rem .8rem; }
+  .grade { padding: 1rem; gap: 1rem; }
+  .cartao { padding: 1.1rem; }
+  .nivel-numero { font-size: 3.2rem; min-width: 5rem; }
+  .leds { gap: 1.5rem; }
+  .btn-grande { width: 100%; font-size: 1.15rem; }
+  .ranking .linha { grid-template-columns: 7.5rem 1fr 3rem; gap: .5rem; }
 }
 
 /* Quem pede menos movimento no sistema operacional não vê animações. */

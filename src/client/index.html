@@ -1,18 +1,28 @@
 <!doctype html>
 <!--
   index.html — Dashboard do SENTINELA (estrutura da página).
-  Funciona offline: sem CDN, sem fontes externas, sem build. Pode ser aberto
-  direto do disco (duplo clique) ou servido pelo serviço de IA em
-  http://localhost:5000/. A lógica está em app.js e o visual em style.css.
+  Funciona offline: sem CDN, sem fontes externas, sem build. É SERVIDO PELO ESP32
+  em http://192.168.4.1/ (celular ou PC): tools/gerar_pagina_esp32.py embute este
+  arquivo, o style.css e o app.js no firmware. Sem a placa, a interface não funciona.
+  A lógica está em app.js e o visual em style.css.
 -->
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SENTINELA — Diagnóstico Acústico</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2394a3b8' fill-rule='evenodd' d='M32 3 56 11V30C56 45 45.5 55.5 32 61 18.5 55.5 8 45 8 30V11ZM15 32C20 24 26 20.5 32 20.5S44 24 49 32C44 40 38 43.5 32 43.5S20 40 15 32ZM32 25.5A6.5 6.5 0 1 1 32 38.5 6.5 6.5 0 1 1 32 25.5Z'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="sem-esp32">
+  <!-- Cobre a página inteira enquanto o ESP32 não responde: sem placa, sem interface. -->
+  <div class="tela-sem-esp32" role="alert">
+    <div class="emblema-grande"></div>
+    <h2 id="texto-sem-esp32">Conectando ao ESP32...</h2>
+    <p>A interface roda na placa e fica indisponível enquanto ela estiver desligada.<br>
+       Verifique a alimentação e a rede Wi-Fi <strong>SENTINELA</strong>. Tentando de novo a cada segundo.</p>
+  </div>
+
   <header class="topo">
     <div class="marca">
       <h1>SENTINELA</h1>
@@ -55,6 +65,17 @@
         <div class="led"><span id="led-buzzer" class="luz luz-buzzer"></span>Buzzer</div>
       </div>
       <p class="estado-atuador">Estado: <strong id="estado-atuador">--</strong></p>
+      <!-- Espelho da tela OLED da placa (mostra o mesmo estado e texto de falha) -->
+      <div class="oled" aria-label="Tela OLED da placa">
+        <div class="oled-topo"><span>SENTINELA</span><span id="oled-hora">--:--</span></div>
+        <div id="oled-estado" class="oled-estado">--</div>
+        <div id="oled-falha" class="oled-falha">--</div>
+        <div id="oled-rodape" class="oled-rodape">--</div>
+      </div>
+      <p class="legenda">Tela OLED: <span id="oled-presente">--</span></p>
+      <label class="campo-falha">Texto da falha na tela (opcional)
+        <input id="campo-falha" type="text" maxlength="40" placeholder="ex.: Batida de pino" autocomplete="off">
+      </label>
       <div class="botoes">
         <button class="btn btn-verde" data-comando="estado=normal">Normal</button>
         <button class="btn btn-vermelho" data-comando="estado=alerta">Alerta</button>
@@ -76,6 +97,13 @@
     <section class="cartao" id="cartao-sistema">
       <h2>Sistema</h2>
       <dl class="metricas metricas-coluna">
+        <div><dt>Data e hora (ESP32)</dt><dd id="hora-esp">--</dd></div>
+        <div><dt>Rede Wi-Fi</dt><dd id="rede-sta">--</dd></div>
+        <div><dt>IP na rede Wi-Fi</dt><dd id="ip-sta">--</dd></div>
+        <div><dt>MAC (estação)</dt><dd id="mac-sta">--</dd></div>
+        <div><dt>Ponto de acesso</dt><dd id="ip-ap">--</dd></div>
+        <div><dt>MAC (ponto de acesso)</dt><dd id="mac-ap">--</dd></div>
+        <div><dt>Boot nº</dt><dd id="boot">--</dd></div>
         <div><dt>Ligado há</dt><dd id="uptime">--</dd></div>
         <div><dt>Taxa de amostragem</dt><dd id="taxa">--</dd></div>
         <div><dt>Memória livre</dt><dd id="heap">--</dd></div>
@@ -83,6 +111,18 @@
         <div><dt>Clientes no Wi-Fi</dt><dd id="clientes">--</dd></div>
         <div><dt>Última resposta</dt><dd id="ultima-resposta">--</dd></div>
       </dl>
+      <details class="config-wifi">
+        <summary>Configurar rede Wi-Fi da placa</summary>
+        <form id="form-wifi" class="form-wifi">
+          <label>Nome da rede (SSID) <input id="campo-ssid" type="text" maxlength="32" autocomplete="off"></label>
+          <label>Senha <input id="campo-senha" type="password" maxlength="63" autocomplete="off"></label>
+          <div class="botoes">
+            <button type="submit" class="btn">Salvar e conectar</button>
+            <button type="button" id="botao-esquecer" class="btn btn-escuro">Esquecer rede</button>
+          </div>
+          <p class="legenda">A rede fica salva na placa. A rede própria SENTINELA (192.168.4.1) continua sempre ativa.</p>
+        </form>
+      </details>
     </section>
 
     <!-- IA: diagnóstico de 5 s e resultado ao vivo -->
@@ -124,6 +164,24 @@
         <p class="ao-vivo-suave">Decisão estabilizada (maioria de 3 em 5): <strong id="vivo-suave">aguardando</strong></p>
         <ol id="vivo-historico" class="historico"></ol>
       </div>
+    </section>
+
+    <!-- Log persistente do ESP32 (memória flash): ERRO / AVISO / INFO com data e hora -->
+    <section class="cartao cartao-largo" id="cartao-log">
+      <h2>Log do sistema</h2>
+      <div class="botoes">
+        <select id="filtro-log" aria-label="Filtrar por nível">
+          <option value="">Todos os níveis</option>
+          <option value="ERRO">Só ERRO</option>
+          <option value="AVISO">Só AVISO</option>
+          <option value="INFO">Só INFO</option>
+        </select>
+        <button id="botao-log" class="btn">Atualizar</button>
+        <a id="link-log" class="btn" href="#" download="sentinela_log.txt">Baixar log completo</a>
+        <span id="info-log" class="legenda"></span>
+      </div>
+      <ol id="lista-log" class="lista-log"></ol>
+      <p class="legenda">Gravado na memória flash da placa: sobrevive a reinícios e quedas de energia. Atualiza a cada 5 s.</p>
     </section>
 
     <!-- Áudio: forma de onda e espectro do último trecho -->

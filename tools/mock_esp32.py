@@ -27,10 +27,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from gerar_pagina_esp32 import montar_pagina  # mesma página que vai para a flash do ESP32
+
 TAXA = 16000
 INICIO = time.time()
 trava = threading.Lock()
-atuador = {"estado": "off", "buzzer_forcado": None, "inicio_teste": 0.0, "antes_teste": "off"}
+atuador = {"estado": "off", "buzzer_forcado": None, "inicio_teste": 0.0, "antes_teste": "off", "falha": ""}
+rede = {"sta_ssid": "RedeSimulada"}
+LOG = []  # log em memória, no mesmo formato do arquivo da flash da placa
+
+
+def registrar(nivel, mensagem):
+    """Igual ao firmware: "AAAA-MM-DD HH:MM:SS [NIVEL] mensagem" (nível com 5 letras)."""
+    LOG.append(f"{time.strftime('%Y-%m-%d %H:%M:%S')} [{nivel:5s}] {mensagem}")
+    del LOG[:-500]
 config = {"modo": "manual", "limiar": 45, "acima": 0, "abaixo": 0}
 playlist = []  # amostras int16 concatenadas dos WAVs (modo --wav-dir)
 args = None
@@ -93,10 +103,11 @@ def saidas():
             atuador["buzzer_forcado"] = None
             return saidas()
         return {"estado": "teste", "verde": int(etapa in (0, 2)), "vermelho": int(etapa in (1, 3)),
-                "buzzer": int(etapa in (4, 5))}
+                "buzzer": int(etapa in (4, 5)), "tela": False, "falha": atuador["falha"]}
     vermelho = int(e == "alerta")
     buzzer = vermelho if atuador["buzzer_forcado"] is None else atuador["buzzer_forcado"]
-    return {"estado": e, "verde": int(e == "normal"), "vermelho": vermelho, "buzzer": buzzer}
+    return {"estado": e, "verde": int(e == "normal"), "vermelho": vermelho, "buzzer": buzzer,
+            "tela": False, "falha": atuador["falha"]}
 
 
 def definir_estado(estado, buzzer=None):
@@ -151,14 +162,21 @@ class Handler(BaseHTTPRequestHandler):
             self.rotear(url.path, q)
 
     def rotear(self, caminho, q):
-        if caminho == "/":
+        if caminho == "/":  # como a placa: a interface é servida pelo "ESP32"
+            return self.responder(200, montar_pagina(), "text/html; charset=utf-8")
+        if caminho == "/info":
             return self.responder(200, {"nome": "SENTINELA (simulador)", "versao": "1.0"})
         if caminho == "/status":
             return self.responder(200, {
                 "ok": True, "versao": "1.0", "uptime_s": int(time.time() - INICIO), "fs_real_hz": TAXA,
                 "heap_livre": 200000, "heap_minimo": 195000, "modo": config["modo"], "limiar": config["limiar"],
                 "atuador": saidas(), "amostras_perdidas": 0, "intervalo_max_us": 63, "clientes_wifi": 1,
-                "simulador": True})
+                "simulador": True, "boot": 1, "hora": time.strftime("%Y-%m-%d %H:%M:%S"), "hora_ok": True,
+                "rede": {"modo": "ap+sta" if rede["sta_ssid"] else "ap", "ap_ssid": "SENTINELA",
+                         "ap_ip": "192.168.4.1", "ap_mac": "AA:BB:CC:00:00:02", "clientes_ap": 1,
+                         "sta_ssid": rede["sta_ssid"], "sta_conectado": bool(rede["sta_ssid"]),
+                         "sta_ip": "127.0.0.1" if rede["sta_ssid"] else "0.0.0.0",
+                         "sta_mac": "AA:BB:CC:00:00:01", "rssi": -52, "mdns": "sentinela.local"}})
         if caminho == "/sensor":
             rms, pico, nivel, clip = nivel_atual()
             avaliar_auto(nivel)
@@ -171,7 +189,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.responder(400, {"erro": "estado invalido; use normal, alerta, off ou teste"})
             if buzzer is not None and buzzer not in ("0", "1"):
                 return self.responder(400, {"erro": "buzzer deve ser 0 ou 1"})
+            falha = q.get("falha", "")
+            if len(falha.encode("utf-8")) > 40 or '"' in falha or "\\" in falha:
+                return self.responder(400, {"erro": "falha deve ter ate 40 caracteres, sem aspas ou barras"})
             definir_estado(estado, None if buzzer is None or estado in ("off", "teste") else int(buzzer))
+            if estado != "teste":
+                atuador["falha"] = falha
+            registrar("AVISO" if estado == "alerta" else "INFO",
+                      f"Atuador -> {estado}{' | falha: ' + falha if falha else ''} (comando de {self.client_address[0]})")
             return self.responder(200, {"ok": True, "atuador": saidas()})
         if caminho == "/config":
             modo = q.get("modo", config["modo"])
@@ -192,6 +217,22 @@ class Handler(BaseHTTPRequestHandler):
             cab = (b"RIFF" + struct.pack("<I", 36 + len(dados)) + b"WAVEfmt " +
                    struct.pack("<IHHIIHH", 16, 1, 1, TAXA, TAXA * 2, 2, 16) + b"data" + struct.pack("<I", len(dados)))
             return self.responder(200, cab + dados, "audio/wav")
+        if caminho == "/log":
+            linhas = inteiro(q.get("linhas", "100"), 1, 500)
+            if linhas is None:
+                return self.responder(400, {"erro": "linhas deve ser inteiro de 1 a 500"})
+            texto = "".join(linha + "\n" for linha in (LOG if q.get("completo") == "1" else LOG[-linhas:]))
+            return self.responder(200, texto.encode("utf-8"), "text/plain; charset=utf-8")
+        if caminho == "/relogio":
+            return self.responder(200, {"ok": True, "hora": time.strftime("%Y-%m-%d %H:%M:%S")})
+        if caminho == "/wifi":
+            if "ssid" not in q and "ssid=" not in self.path:
+                return self.responder(400, {"erro": "informe ssid= (e senha=); ssid vazio esquece a rede"})
+            rede["sta_ssid"] = q.get("ssid", "")
+            registrar("INFO", f"Nova rede Wi-Fi configurada: \"{rede['sta_ssid']}\"" if rede["sta_ssid"]
+                      else "Rede Wi-Fi esquecida: só o ponto de acesso fica ativo")
+            return self.responder(200, {"ok": True, "mensagem": "conectando; acompanhe em /status e /log"})
+        registrar("AVISO", f"Pedido inválido (404) em {caminho} de {self.client_address[0]}")
         return self.responder(404, {"erro": "rota nao encontrada"})
 
 
@@ -208,6 +249,8 @@ def main():
         playlist = carregar_wavs(args.wav_dir, args.padrao)
         if not playlist:
             sys.exit("ERRO: nenhum WAV utilizável na pasta.")
+    registrar("INFO", "=== Boot #1: SENTINELA (simulador) ligado ===")
+    registrar("INFO", f"Servidor HTTP ouvindo na porta TCP {args.porta}")
     servidor = ThreadingHTTPServer(("0.0.0.0", args.porta), Handler)
     print(f"Simulador do ESP32 em http://127.0.0.1:{args.porta}/  (Ctrl+C para parar)")
     try:
