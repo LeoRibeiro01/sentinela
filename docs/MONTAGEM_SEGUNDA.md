@@ -81,7 +81,7 @@ curl.exe "http://192.168.4.1/atuador?estado=off"       # tudo apagado
 
 Depois, rode o teste automático completo: `python tools\teste_fase1.py rotas` (todas as linhas `[OK]`).
 
-## 4. Testes de aceitação (seção 9 do CLAUDE.md)
+## 4. Testes de aceitação (critérios do projeto)
 
 Abra o dashboard: **duplo clique em `src\client\index.html`** (funciona sem a IA), ou suba a IA (seção 6) e abra `http://localhost:5000/`.
 
