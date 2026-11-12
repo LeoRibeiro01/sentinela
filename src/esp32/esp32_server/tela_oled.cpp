@@ -159,6 +159,11 @@ static void desenhar() {
 }
 
 static void tarefaTela(void*) {
+  // O I2C é iniciado AQUI (núcleo 0) e não no setup (núcleo 1): a interrupção do driver
+  // fica no núcleo de quem chama Wire.begin(). No núcleo 1 ela disputava a CPU com a
+  // captura de áudio e fazia o timer perder amostras (~6 por segundo, medido em 12/11).
+  Wire.begin(PINO_SDA, PINO_SCL);
+  Wire.setClock(400000);  // I2C rápido: um quadro leva ~25 ms
   uint32_t ultimaProcuraMs = 0;
   bool avisouAusencia = false;
   for (;;) {
@@ -189,8 +194,6 @@ static void tarefaTela(void*) {
 }
 
 void iniciarTela() {
-  Wire.begin(PINO_SDA, PINO_SCL);
-  Wire.setClock(400000);  // I2C rápido: um quadro leva ~25 ms
   // Pilha de 4 KB, prioridade 1, núcleo 0 (longe da captura de áudio no núcleo 1).
   xTaskCreatePinnedToCore(tarefaTela, "tela", 4096, nullptr, 1, nullptr, 0);
 }

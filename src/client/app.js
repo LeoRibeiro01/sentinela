@@ -7,7 +7,7 @@
 //  2. Serviço de IA (diferencial, localhost:5000): /api/resultado a cada 1 s e
 //     /api/diagnostico sob demanda. Se estiver offline, só o painel de IA é
 //     desabilitado; o resto do dashboard continua funcionando.
-// A cada 5 voltas o laço do ESP32 também busca /log (log persistente da placa).
+// A cada 15 voltas (~15 s) o laço do ESP32 também busca /log (log persistente da placa).
 // Dados vindos da rede só entram na página via textContent (nunca innerHTML).
 'use strict';
 
@@ -105,7 +105,8 @@ async function lacoEsp32() {
         estado.relogioEnviado = true;
         await buscar(urlEsp32(`/relogio?epoch=${Math.floor(Date.now() / 1000)}`));
       }
-      if (estado.voltas++ % 5 === 0) await atualizarLog();
+      // A cada 15 s: ler o log pausa a flash (e a captura de audio) por alguns ms; nao vale fazer toda hora.
+      if (estado.voltas++ % 15 === 0) await atualizarLog();
     } catch {
       estado.falhasSeguidas += 1;
       if (estado.falhasSeguidas >= 2 && estado.conectado) mostrarConexao(false);
@@ -179,7 +180,7 @@ function mostrarAtuador(a) {
 
 async function atualizarLog() {
   try {
-    const resposta = await buscar(urlEsp32('/log?linhas=80'), 3000);
+    const resposta = await buscar(urlEsp32('/log?linhas=50'), 3000);
     if (!resposta.ok) return;
     estado.linhasLog = (await resposta.text()).split('\n').filter((l) => l.trim());
     mostrarLog();

@@ -21,7 +21,8 @@ struct Evento {
 };
 
 static QueueHandle_t fila = nullptr;
-static bool flashOk = false;
+static volatile bool flashOk = false;
+static volatile bool montagemConcluida = false;  // até lá, os eventos esperam na fila
 static uint32_t boot = 0;
 static Evento pendentes[MAX_PENDENTES];  // eventos esperando o relógio (só a tarefa principal mexe)
 static uint8_t qtdPendentes = 0;
@@ -46,10 +47,10 @@ void escreverDataHora(char* destino, size_t tamanho) {
   strftime(destino, tamanho, "%Y-%m-%d %H:%M:%S", &t);
 }
 
-bool iniciarLog() {
+void prepararLog() {
   setenv("TZ", "<-03>3", 1);  // horário de Brasília: UTC-3, sem horário de verão
   tzset();
-  fila = xQueueCreate(24, sizeof(Evento));
+  fila = xQueueCreate(32, sizeof(Evento));
 
   // Contador de boots na NVS (memória não volátil): ajuda a ler o log entre reinícios.
   Preferences prefs;
@@ -57,11 +58,14 @@ bool iniciarLog() {
   boot = prefs.getUInt("boots", 0) + 1;
   prefs.putUInt("boots", boot);
   prefs.end();
+}
 
-  // true = formata na primeira vez. Usa a partição de dados do esquema padrão de 4 MB.
+bool montarFlashDoLog() {
+  // true = formata se não conseguir montar (primeira vez). Partição de dados do esquema padrão.
   flashOk = LittleFS.begin(true);
+  montagemConcluida = true;
   if (!flashOk) Serial.println("ERRO: nao foi possivel montar o LittleFS (log so na Serial)");
-  return flashOk && fila != nullptr;
+  return flashOk;
 }
 
 void registrar(NivelLog nivel, const char* formato, ...) {
@@ -110,7 +114,7 @@ static void gravar(const Evento& e) {
 }
 
 void processarLog() {
-  if (!fila) return;
+  if (!fila || !montagemConcluida) return;  // flash ainda montando: eventos esperam na fila
   if (!relogioOk && relogioAjustado()) {
     relogioOk = true;
     char agora[24];
@@ -182,7 +186,9 @@ void enviarLog(WebServer& servidor, uint32_t linhas, bool completo) {
   servidor.sendHeader("Cache-Control", "no-store");
   servidor.setContentLength(CONTENT_LENGTH_UNKNOWN);  // envio em blocos (chunked)
   servidor.send(200, "text/plain; charset=utf-8", "");
-  if (!flashOk) {
+  if (!montagemConcluida) {
+    servidor.sendContent("Log ainda carregando (montando a memoria flash); tente em alguns segundos\n");
+  } else if (!flashOk) {
     servidor.sendContent("ERRO: memoria flash indisponivel; log somente na Serial\n");
   } else if (completo) {
     enviarArquivo(servidor, ARQUIVO_ANTIGO, 0);

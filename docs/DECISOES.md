@@ -81,3 +81,10 @@ Cada decisão: o que foi decidido e por quê. Mais recentes no fim.
 - **Animações sem "fill-mode both"**: no teste, cartões ficaram invisíveis quando a animação de entrada atrasou. Animação que esconde conteúdo até rodar não vale o risco numa demo; agora, se não rodar, o conteúdo aparece direto.
 - **Evidências automatizadas** (`tools/coletar_evidencias.ps1`): ping, ARP, porta 80 × 81, socket TCP escrito à mão (no lugar do telnet, que não vem no Windows), `curl -v`, atuadores, erros e log, salvos em `docs/evidencias/<data>/`.
 - **Relatório ABNT** em Markdown (`docs/RELATORIO_TDE.md`) + gerador de `.docx` formatado (`tools/gerar_relatorio_docx.py`, usa `python-docx`, só ferramenta de documentação). Os 6 projetos semelhantes foram conferidos nas páginas originais (diagrama, código e bibliotecas); um candidato (Edge Impulse) foi descartado porque a página não existe mais, e outro (WLED) por não ter diagrama.
+
+## Ajustes medidos na placa com o OLED (12/11)
+
+- **Boot de ~29 s → 0,34 s.** Medindo cada etapa na Serial (`[boot] ...`), a lentidão não era o log: depois que a captura de áudio começa (núcleo 1, prioridade 3, 16 kHz), o restante do `setup()` — que também roda no núcleo 1 — quase não recebe CPU; iniciar a tela depois da captura levou 25 s. Agora a captura é a **última** etapa do `setup()`, e a montagem do LittleFS também vem depois da rede e do servidor (os eventos do boot esperam na fila).
+- **I2C iniciado na tarefa da tela (núcleo 0).** A interrupção do driver I2C fica no núcleo de quem chama `Wire.begin()`; no `setup()` ela caía no núcleo da captura. Depois da mudança, a perda de amostras deixou de ser contínua: restam rajadas de ~64 amostras (4 ms) a cada 15–20 s **apenas enquanto a estação tenta reconectar** a uma rede ausente (≈0,03% do áudio).
+- **Dashboard lê o log a cada 15 s (50 linhas)**, não mais a cada 5 s: ler a flash pausa o cache e, com ele, a captura.
+- **Microfone sem alimentação após remontagem**: `adc=[0..0]` constante = OUT em 0 V = VDD solto (com GND solto a leitura iria para cima). O jumper do VDD estava no pino GAIN; corrigido pela equipe (GAIN também em 3V3, ganho de 40 dB).

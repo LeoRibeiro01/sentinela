@@ -18,7 +18,11 @@
 
 enum NivelLog : uint8_t { LOG_INFO, LOG_AVISO, LOG_ERRO };
 
-bool iniciarLog();       // monta o sistema de arquivos e cria a fila; false se a flash falhar
+// Boot em duas etapas: prepararLog() é instantâneo (fila, fuso, contador de boots) e já
+// permite registrar; montarFlashDoLog() monta o LittleFS e pode demorar (na primeira vez
+// formata). Ela roda DEPOIS de a rede e o servidor estarem no ar, para não atrasá-los.
+void prepararLog();
+bool montarFlashDoLog();  // false se a flash falhar (o log segue só na Serial)
 void registrar(NivelLog nivel, const char* formato, ...);  // estilo printf; seguro entre tarefas
 void processarLog();     // chamar na tarefa principal: grava a fila na flash
 

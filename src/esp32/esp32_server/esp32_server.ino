@@ -357,18 +357,27 @@ static void verificarSaude() {
 
 // ---------- Inicialização e laço principal ----------
 
+// Imprime na Serial quanto tempo levou cada etapa do boot (diagnóstico de inicialização lenta).
+static uint32_t marcaBootMs = 0;
+static void tempoEtapa(const char* etapa) {
+  Serial.printf("[boot] %-22s %5lu ms\n", etapa, (unsigned long)(millis() - marcaBootMs));
+  marcaBootMs = millis();
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("\nSENTINELA iniciando...");
-  bool logOk = iniciarLog();  // primeiro: tudo o que vem depois já pode ser registrado
+  marcaBootMs = millis();
+  prepararLog();  // instantâneo: a partir daqui tudo pode ser registrado (fica na fila)
   bool inesperado = false;
   const char* motivo = motivoReinicio(inesperado);
   registrar(inesperado ? LOG_ERRO : LOG_INFO, "=== Boot #%lu: SENTINELA v%s ligado (%s) ===",
             (unsigned long)numeroBoot(), VERSAO, motivo);
-  if (!logOk) registrar(LOG_ERRO, "Memória flash do log indisponível: registros só na Serial");
+  tempoEtapa("log (fila e boot)");
 
   iniciarAtuadores();
   iniciarRede();
+  tempoEtapa("rede (AP + estacao)");
 
   servidor.on("/", HTTP_GET, rotaPagina);
   servidor.on("/info", HTTP_GET, rotaInfo);
@@ -383,12 +392,26 @@ void setup() {
   servidor.onNotFound(rotaNaoEncontrada);
   servidor.begin();
   registrar(LOG_INFO, "Servidor HTTP ouvindo na porta TCP 80");
+  tempoEtapa("servidor HTTP");
 
-  if (!iniciarCaptura()) registrar(LOG_ERRO, "Falha ao iniciar a captura de áudio (microfone)");
   iniciarTela();
   // Pilha de 8 KB (igual à do loop() do Arduino); prioridade 1, abaixo do Wi-Fi.
   xTaskCreatePinnedToCore(tarefaPrincipal, "principal", 8192, nullptr, 1, nullptr, 0);
-  Serial.printf("Pronto. Heap livre: %lu bytes\n", (unsigned long)ESP.getFreeHeap());
+  tempoEtapa("tela e tarefa principal");
+  Serial.printf("Servidor no ar em %lu ms. Heap livre: %lu bytes\n", (unsigned long)millis(),
+                (unsigned long)ESP.getFreeHeap());
+
+  // A flash do log: o servidor já atende enquanto ela monta, e os eventos do boot
+  // ficam esperando na fila até a montagem terminar.
+  if (!montarFlashDoLog()) registrar(LOG_ERRO, "Memória flash do log indisponível: registros só na Serial");
+  tempoEtapa("montagem do LittleFS");
+
+  // A captura de áudio é a ÚLTIMA etapa. Ela roda no núcleo 1 (o mesmo do setup) com
+  // prioridade maior, 16 mil vezes por segundo: depois que começa, o que sobrar do setup
+  // quase não ganha CPU. Medido na placa em 12/11: com a captura antes da tela, o
+  // restante do setup levou 25 s; depois dela, o setup termina aqui.
+  if (!iniciarCaptura()) registrar(LOG_ERRO, "Falha ao iniciar a captura de áudio (microfone)");
+  tempoEtapa("captura de audio");
 }
 
 // Tarefa principal: servidor HTTP, modo auto, reconexão Wi-Fi, gravação do log e saúde.
