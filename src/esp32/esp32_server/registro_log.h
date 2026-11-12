@@ -8,9 +8,9 @@
 //    só coloca a mensagem numa fila do FreeRTOS, sem tocar na flash.
 //  - processarLog() roda na tarefa principal: tira as mensagens da fila e grava
 //    no arquivo /log.txt. Uma única tarefa escreve na flash = sem conflito.
-//  - Data e hora: o relógio vem do NTP (quando a placa tem internet pela rede Wi-Fi)
-//    ou do navegador (rota /relogio). Eventos anteriores ao ajuste (ex.: o boot)
-//    esperam até 90 s na RAM e são gravados com a hora corrigida retroativamente.
+//  - Data e hora: NTP (rede com internet) ou navegador (rota /relogio). Cada evento é
+//    gravado na hora; antes do ajuste do relógio sai "sem hora (+Ns)" (segundos desde o boot)
+//    e, quando a hora chega, uma linha de referência diz a que horas o boot começou.
 //  - O arquivo é limitado a ~48 KB; ao encher, vira /log_antigo.txt (rotação).
 #pragma once
 #include <Arduino.h>

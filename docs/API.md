@@ -118,7 +118,7 @@ Log persistente na memória flash (LittleFS, arquivo `/log.txt`; ao passar de ~4
 (Exemplo ilustrativo do formato.)
 
 - `linhas` = 1 a 500 (padrão 100): as últimas linhas do arquivo atual. `completo=1`: os dois arquivos inteiros (antigo + atual).
-- Eventos de antes do relógio ser ajustado (ex.: o boot) esperam até 90 s na RAM e são gravados com a hora corrigida; se o relógio não for ajustado nesse tempo, aparecem como `sem hora (+Ns)`.
+- Cada evento é gravado na hora. Antes de o relógio ser ajustado (NTP ou navegador), a linha sai como `sem hora (+Ns)` (segundos desde o boot); quando a hora chega, a linha "Relógio ajustado ... (este boot #N começou às HH:MM:SS)" permite calcular o horário das anteriores.
 - O que é registrado: boot e motivo do reinício (reinício inesperado = ERRO), ponto de acesso, conexão/queda/reconexão do Wi-Fi, entrada e saída de clientes do AP, comandos e mudanças de configuração, pedidos inválidos, tela detectada/perdida, ajuste do relógio, memória baixa e perda de amostras.
 
 ## `GET /wifi?ssid=NOME&senha=SENHA`

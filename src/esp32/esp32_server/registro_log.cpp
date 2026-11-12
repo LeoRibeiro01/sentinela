@@ -8,9 +8,7 @@
 static const char* ARQUIVO = "/log.txt";
 static const char* ARQUIVO_ANTIGO = "/log_antigo.txt";
 static constexpr size_t TAMANHO_MAXIMO = 48 * 1024;   // ~500 linhas; depois rotaciona
-static constexpr uint32_t ESPERA_RELOGIO_MS = 90000;  // quanto os eventos esperam pela hora certa
 static constexpr time_t EPOCH_VALIDO = 1700000000;    // nov/2023: antes disso o relógio não foi ajustado
-static constexpr uint8_t MAX_PENDENTES = 24;
 static constexpr uint16_t MAX_LINHAS_ENVIO = 500;
 
 struct Evento {
@@ -24,8 +22,6 @@ static QueueHandle_t fila = nullptr;
 static volatile bool flashOk = false;
 static volatile bool montagemConcluida = false;  // até lá, os eventos esperam na fila
 static uint32_t boot = 0;
-static Evento pendentes[MAX_PENDENTES];  // eventos esperando o relógio (só a tarefa principal mexe)
-static uint8_t qtdPendentes = 0;
 static bool relogioOk = false;
 static char origemRelogio[16] = "NTP";
 static volatile uint32_t descartados = 0;  // eventos perdidos por fila cheia
@@ -117,9 +113,16 @@ void processarLog() {
   if (!fila || !montagemConcluida) return;  // flash ainda montando: eventos esperam na fila
   if (!relogioOk && relogioAjustado()) {
     relogioOk = true;
-    char agora[24];
+    // Linha de referência: com ela, as linhas "sem hora (+Ns)" deste boot ganham horário
+    // (início do boot + N segundos).
+    char agora[24], inicioBoot[12];
     escreverDataHora(agora, sizeof(agora));
-    registrar(LOG_INFO, "Relógio ajustado pelo %s: %s", origemRelogio, agora);
+    time_t inicio = time(nullptr) - (time_t)(millis() / 1000);
+    tm t;
+    localtime_r(&inicio, &t);
+    strftime(inicioBoot, sizeof(inicioBoot), "%H:%M:%S", &t);
+    registrar(LOG_INFO, "Relógio ajustado pelo %s: %s (este boot #%lu começou às %s)", origemRelogio,
+              agora, (unsigned long)boot, inicioBoot);
   }
   if (descartados) {
     uint32_t n = descartados;
@@ -127,21 +130,10 @@ void processarLog() {
     registrar(LOG_AVISO, "%lu evento(s) de log descartados (fila cheia)", (unsigned long)n);
   }
 
-  // Com a hora certa (ou depois de 90 s sem ela), grava; antes disso, guarda na RAM.
-  bool podeGravar = relogioOk || millis() > ESPERA_RELOGIO_MS;
-  if (podeGravar && qtdPendentes) {
-    for (uint8_t i = 0; i < qtdPendentes; i++) gravar(pendentes[i]);
-    qtdPendentes = 0;
-  }
+  // Grava NA HORA: um evento nunca espera na RAM (se a placa reiniciasse, ele se perderia).
+  // No máximo 4 linhas por volta, para não concentrar escritas na flash (cada uma pausa a captura).
   Evento e;
-  while (xQueueReceive(fila, &e, 0) == pdTRUE) {
-    if (podeGravar) { gravar(e); continue; }
-    if (qtdPendentes == MAX_PENDENTES) {  // RAM cheia: grava assim mesmo, sem hora
-      for (uint8_t i = 0; i < qtdPendentes; i++) gravar(pendentes[i]);
-      qtdPendentes = 0;
-    }
-    pendentes[qtdPendentes++] = e;
-  }
+  for (uint8_t n = 0; n < 4 && xQueueReceive(fila, &e, 0) == pdTRUE; n++) gravar(e);
 }
 
 static void enviarArquivo(WebServer& servidor, const char* nome, size_t inicio) {
