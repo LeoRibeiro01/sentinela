@@ -2,7 +2,7 @@
 
 Alvo: `http://172.20.10.8:80` - cliente: `LENOVO-NOTE` - gerado por `tools/coletar_evidencias.ps1`.
 
-**18 de 18 verificacoes passaram.**
+**19 de 19 verificacoes passaram** (18 automaticas + teste manual de reconexao).
 
 | Teste | Resultado | Detalhe | Arquivo |
 |---|---|---|---|
@@ -24,3 +24,4 @@ Alvo: `http://172.20.10.8:80` - cliente: `LENOVO-NOTE` - gerado por `tools/colet
 | Erro esperado em /audio.wav?ms=99999 | OK | HTTP 400 (esperado 400) | `09_erros.txt` |
 | Erro esperado em /rota-que-nao-existe | OK | HTTP 404 (esperado 404) | `09_erros.txt` |
 | Log com data/hora e niveis | OK | niveis presentes: INFO, AVISO | `10_log_flash.txt` |
+| Reconexao Wi-Fi com log (hotspot desligado ~40 s) | OK | PERDIDA 09:17:23 -> RECONECTADO 09:17:56 (32 s), mesmo IP | `11_reconexao_wifi.txt` |

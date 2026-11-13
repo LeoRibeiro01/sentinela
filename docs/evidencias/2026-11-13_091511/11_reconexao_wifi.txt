@@ -1,0 +1,16 @@
+# Teste de reconexao Wi-Fi (requisito 3.2.1)
+# Procedimento: hotspot "iPhone" desligado por ~40 s e religado; log lido em GET /log?linhas=12 de 172.20.10.8
+# Data: 2026-11-13  Cliente: LENOVO-NOTE
+
+2026-11-13 09:15:59 [INFO ] Atuador -> normal (comando de 172.20.10.9)
+2026-11-13 09:16:01 [AVISO] Atuador -> alerta | falha: Teste de evidencia (comando de 172.20.10.9)
+2026-11-13 09:16:02 [INFO ] Atuador -> normal | buzzer ligado (comando de 172.20.10.9)
+2026-11-13 09:16:04 [INFO ] Atuador -> off (comando de 172.20.10.9)
+2026-11-13 09:16:06 [AVISO] Pedido inválido (400) em /atuador de 172.20.10.9
+2026-11-13 09:16:06 [AVISO] Pedido inválido (400) em /audio.wav de 172.20.10.9
+2026-11-13 09:16:06 [AVISO] Pedido inválido (404) em /rota-que-nao-existe de 172.20.10.9
+2026-11-13 09:16:09 [AVISO] Captura de áudio perdeu 2687 amostras em 10 s
+2026-11-13 09:17:23 [AVISO] Conexão Wi-Fi com "iPhone" PERDIDA (motivo 2); reconectando
+2026-11-13 09:17:23 [AVISO] Sem conexão com "iPhone": tentativa 1 (a cada 15 s)
+2026-11-13 09:17:38 [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+2026-11-13 09:17:56 [INFO ] Wi-Fi RECONECTADO a "iPhone" após 32 s: IP 172.20.10.8
