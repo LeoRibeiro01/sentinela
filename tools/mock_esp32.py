@@ -105,7 +105,8 @@ def saidas():
         return {"estado": "teste", "verde": int(etapa in (0, 2)), "vermelho": int(etapa in (1, 3)),
                 "buzzer": int(etapa in (4, 5)), "tela": False, "falha": atuador["falha"]}
     vermelho = int(e == "alerta")
-    buzzer = vermelho if atuador["buzzer_forcado"] is None else atuador["buzzer_forcado"]
+    # Como o firmware: o alerta não apita; só bipes curtos (bip=1) ou buzzer forçado.
+    buzzer = int(bool(atuador["buzzer_forcado"])) or int(time.time() < atuador.get("fim_bip", 0))
     return {"estado": e, "verde": int(e == "normal"), "vermelho": vermelho, "buzzer": buzzer,
             "tela": False, "falha": atuador["falha"]}
 
@@ -185,6 +186,10 @@ class Handler(BaseHTTPRequestHandler):
                                         "adc_min": max(0, 1550 - pico), "adc_max": min(4095, 1550 + pico)})
         if caminho == "/atuador":
             estado, buzzer = q.get("estado"), q.get("buzzer")
+            if q.get("bip") == "1":
+                atuador["fim_bip"] = time.time() + 0.15
+                if estado is None:
+                    return self.responder(200, {"ok": True, "atuador": saidas()})
             if estado not in ("normal", "alerta", "off", "teste"):
                 return self.responder(400, {"erro": "estado invalido; use normal, alerta, off ou teste"})
             if buzzer is not None and buzzer not in ("0", "1"):

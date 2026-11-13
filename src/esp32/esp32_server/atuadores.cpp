@@ -1,8 +1,10 @@
 // atuadores.cpp — Controle dos LEDs verde/vermelho, do buzzer ativo e do LED onboard.
 //
-// normal = verde aceso; alerta = vermelho + buzzer (+ LED azul onboard);
-// off = tudo apagado; teste = sequência de ~2 s (pisca verde/vermelho e um beep)
-// e depois volta ao estado anterior. O LED onboard (GPIO2) espelha o alerta,
+// normal = verde aceso; alerta = vermelho (+ LED azul onboard); off = tudo apagado;
+// teste = sequência de ~2 s (pisca verde/vermelho e um bipe curto) e depois volta ao
+// estado anterior. O buzzer NÃO acompanha o alerta (um apito contínuo incomodava e
+// disparava com o barulho da sala no modo auto): ele só dá bipes curtos, pedidos com
+// bipar() — por exemplo, quando a IA termina um diagnóstico. O LED onboard (GPIO2) espelha o alerta,
 // o que permite testar a lógica sem nenhum componente externo ligado.
 #include "atuadores.h"
 
@@ -11,6 +13,7 @@ static constexpr uint8_t PINO_VERMELHO = 17;
 static constexpr uint8_t PINO_BUZZER = 18;
 static constexpr uint8_t PINO_ONBOARD = 2;  // só usado como saída depois do boot
 static constexpr uint32_t DURACAO_TESTE_MS = 2000;
+static constexpr uint32_t DURACAO_BIP_MS = 150;  // apito leve
 static constexpr uint8_t JANELAS_PARA_ALERTA = 3;  // ~0,75 s acima do limiar
 static constexpr uint8_t JANELAS_PARA_NORMAL = 8;  // ~2 s abaixo (histerese evita pisca-pisca)
 
@@ -20,6 +23,7 @@ static bool buzzerForcado = false;   // true quando o comando trouxe &buzzer=
 static bool valorBuzzerForcado = false;
 static uint32_t inicioTesteMs = 0;
 static bool verde = false, vermelho = false, buzzer = false;
+static uint32_t fimBipMs = 0;  // millis() em que o bipe atual termina (0 = sem bipe)
 
 static bool modoAuto = false;
 static uint8_t limiar = 45;
@@ -29,18 +33,19 @@ static uint8_t janelasAcima = 0, janelasAbaixo = 0;
 static void aplicarSaidas() {
   verde = (estado == ATUADOR_NORMAL);
   vermelho = (estado == ATUADOR_ALERTA);
-  buzzer = buzzerForcado ? valorBuzzerForcado : vermelho;
+  buzzer = buzzerForcado && valorBuzzerForcado;  // por padrão o buzzer fica quieto
 
   if (estado == ATUADOR_TESTE) {
     // Etapas de 250 ms: verde, vermelho, verde, vermelho, beep, beep, apagado, apagado.
     uint32_t etapa = (millis() - inicioTesteMs) / 250;
     verde = (etapa == 0 || etapa == 2);
     vermelho = (etapa == 1 || etapa == 3);
-    buzzer = (etapa == 4 || etapa == 5);
+    buzzer = (millis() - inicioTesteMs >= 1000 && millis() - inicioTesteMs < 1000 + DURACAO_BIP_MS);
   }
 
   digitalWrite(PINO_VERDE, verde ? HIGH : LOW);
   digitalWrite(PINO_VERMELHO, vermelho ? HIGH : LOW);
+  if (fimBipMs && (int32_t)(fimBipMs - millis()) > 0) buzzer = true;  // bipe curto em andamento
   digitalWrite(PINO_BUZZER, buzzer ? HIGH : LOW);
   digitalWrite(PINO_ONBOARD, vermelho ? HIGH : LOW);
 }
@@ -65,7 +70,16 @@ void definirEstado(EstadoAtuador novo, bool temBuzzer, bool valorBuzzer) {
   aplicarSaidas();
 }
 
+void bipar() {
+  fimBipMs = millis() + DURACAO_BIP_MS;
+  aplicarSaidas();
+}
+
 void atualizarAtuadores() {
+  if (fimBipMs && (int32_t)(fimBipMs - millis()) <= 0) {  // o bipe acabou: desliga o buzzer
+    fimBipMs = 0;
+    aplicarSaidas();
+  }
   if (estado != ATUADOR_TESTE) return;
   if (millis() - inicioTesteMs >= DURACAO_TESTE_MS) definirEstado(estadoAntesDoTeste);
   else aplicarSaidas();

@@ -12,7 +12,8 @@ enum EstadoAtuador : uint8_t { ATUADOR_OFF, ATUADOR_NORMAL, ATUADOR_ALERTA, ATUA
 void iniciarAtuadores();
 // Muda o estado. Se temBuzzer for true, `buzzer` força o buzzer ligado/desligado.
 void definirEstado(EstadoAtuador novo, bool temBuzzer = false, bool buzzer = false);
-void atualizarAtuadores();  // chamar no loop(): anima a sequência de teste
+void atualizarAtuadores();  // chamar sempre na tarefa principal: anima o teste e encerra o bipe
+void bipar();               // apito leve de 150 ms (ex.: fim de um diagnóstico da IA)
 EstadoAtuador estadoAtual();
 const char* nomeEstado(EstadoAtuador estado);
 bool verdeLigado();

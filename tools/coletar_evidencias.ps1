@@ -129,7 +129,7 @@ $texto = Cabecalho "Atuadores (LEDs, buzzer e tela OLED) comandados via rede"
 $sequencia = @(
     @{ rota = "/atuador?estado=normal"; esperado = "normal" },
     @{ rota = "/atuador?estado=alerta&falha=Teste%20de%20evidencia"; esperado = "alerta" },
-    @{ rota = "/atuador?estado=normal&buzzer=1"; esperado = "normal" },
+    @{ rota = "/atuador?estado=normal&bip=1"; esperado = "normal" },
     @{ rota = "/atuador?estado=off"; esperado = "off" }
 )
 foreach ($passo in $sequencia) {

@@ -77,12 +77,14 @@ def texto_para_tela(texto):
     return texto
 
 
-def comandar_atuador(estado, falha=""):
+def comandar_atuador(estado, falha="", bip=False):
     """Envia o estado (e o texto da falha, mostrado na tela OLED) ao ESP32.
     Falha de rede não derruba o serviço: só registra."""
     global ultimo_comando
     try:
         extra = f"&falha={quote(texto_para_tela(falha))}" if falha else ""
+        if bip:
+            extra += "&bip=1"  # apito leve: avisa que o diagnóstico terminou
         pedir_esp32(f"/atuador?estado={estado}{extra}", timeout=3)
         ultimo_comando = estado
         return True
@@ -218,7 +220,7 @@ def diagnosticar(segundos):
         resposta.update(status="inconclusivo", diagnostico=montar_diagnostico("_inconclusivo"))
         estado = "normal"
         falha = "Diagnostico inconclusivo"
-    if comandar_atuador(estado, falha):
+    if comandar_atuador(estado, falha, bip=True):
         resposta["atuador"] = estado
     votos.clear()  # recomeça a suavização do modo ao vivo a partir do diagnóstico
     return resposta

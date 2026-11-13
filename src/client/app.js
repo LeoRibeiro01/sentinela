@@ -165,8 +165,6 @@ function mostrarAtuador(a) {
   $('led-vermelho').classList.toggle('acesa', a.vermelho === 1);
   $('led-buzzer').classList.toggle('acesa', a.buzzer === 1);
   $('estado-atuador').textContent = NOMES_ESTADO[a.estado] || a.estado;
-  $('botao-buzzer').classList.toggle('btn-ativo', a.buzzer === 1);
-  $('botao-buzzer').textContent = a.buzzer === 1 ? 'Buzzer: LIGADO' : 'Buzzer';
   // Espelho da tela OLED: mesmas informações que a placa desenha no display.
   $('oled-estado').textContent = NOMES_ESTADO[a.estado] || a.estado;
   $('oled-estado').classList.toggle('oled-alerta', a.estado === 'alerta');
@@ -274,12 +272,8 @@ function configurarComandos() {
   $('botao-esquecer').addEventListener('click', () => enviarComando('/wifi?ssid='));
   $('filtro-log').addEventListener('change', mostrarLog);
   $('botao-log').addEventListener('click', atualizarLog);
-  // O buzzer alterna: mantém o estado atual dos LEDs e só liga/desliga o buzzer.
-  $('botao-buzzer').addEventListener('click', () => {
-    const a = estado.atuador || { estado: 'off', buzzer: 0 };
-    const base = a.estado === 'alerta' ? 'alerta' : 'normal';
-    enviarComando(`/atuador?estado=${base}&buzzer=${a.buzzer === 1 ? 0 : 1}`);
-  });
+  // O buzzer só dá bipes curtos (o alerta não apita): este botão testa o bipe.
+  $('botao-buzzer').addEventListener('click', () => enviarComando('/atuador?bip=1'));
   $('form-modo').addEventListener('submit', (e) => {
     e.preventDefault();
     const limiar = Math.max(0, Math.min(100, Math.round(Number($('campo-limiar').value) || 0)));

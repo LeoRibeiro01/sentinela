@@ -106,7 +106,7 @@ static void rotaPagina() {
 
 static void rotaInfo() {
   responderJson(200, "{\"nome\":\"SENTINELA\",\"versao\":\"2.0\",\"rotas\":[\"/\",\"/status\",\"/sensor\","
-                     "\"/audio.wav?ms=1000\",\"/atuador?estado=normal\",\"/config?modo=manual\",\"/log?linhas=50\","
+                     "\"/audio.wav?ms=1000\",\"/atuador?estado=normal&bip=1\",\"/config?modo=manual\",\"/log?linhas=50\","
                      "\"/wifi?ssid=&senha=\",\"/relogio?epoch=\"]}");
 }
 
@@ -152,8 +152,19 @@ static bool falhaValida(const String& texto) {
 }
 
 static void rotaAtuador() {
+  // bip=1 dá um apito leve (fim de diagnóstico). Pode vir sozinho, sem mudar o estado.
+  bool bip = servidor.arg("bip") == "1";
   if (!servidor.hasArg("estado")) {
-    responderErro(400, "{\"erro\":\"informe estado=normal|alerta|off|teste\"}");
+    if (bip) {
+      bipar();
+      char atuador[160];
+      escreverJsonAtuador(atuador, sizeof(atuador));
+      char json[200];
+      snprintf(json, sizeof(json), "{\"ok\":true,\"atuador\":%s}", atuador);
+      responderJson(200, json);
+      return;
+    }
+    responderErro(400, "{\"erro\":\"informe estado=normal|alerta|off|teste (ou bip=1)\"}");
     return;
   }
   bool temBuzzer = servidor.hasArg("buzzer");
@@ -184,6 +195,7 @@ static void rotaAtuador() {
   }
   // O teste não apaga a mensagem: quando ele termina, o estado anterior volta com ela.
   if (estado != "teste") definirMensagemTela(falha.c_str());
+  if (bip) bipar();
 
   // Registra mudanças de estado (a IA repete o mesmo comando várias vezes; isso não vira log).
   if (estadoAtual() != anterior || falha.length() || temBuzzer) {

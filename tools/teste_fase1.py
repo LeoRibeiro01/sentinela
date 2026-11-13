@@ -72,7 +72,8 @@ def teste_rotas(base):
     verificar(codigo == 200 and all(k in se for k in ["rms", "pico", "nivel", "clipping", "ts_ms"]),
               f"/sensor responde com rms/pico/nivel/clipping/ts_ms ({se})")
 
-    for estado, esperado in [("normal", (1, 0, 0)), ("alerta", (0, 1, 1)), ("off", (0, 0, 0))]:
+    # O alerta NÃO liga o buzzer (só bipes curtos com bip=1).
+    for estado, esperado in [("normal", (1, 0, 0)), ("alerta", (0, 1, 0)), ("off", (0, 0, 0))]:
         codigo, _, r = pedir_json(base, f"/atuador?estado={estado}")
         a = r.get("atuador", {})
         obtido = (a.get("verde"), a.get("vermelho"), a.get("buzzer"))
@@ -80,6 +81,8 @@ def teste_rotas(base):
                   f"/atuador?estado={estado} → verde/vermelho/buzzer = {obtido}")
     codigo, _, r = pedir_json(base, "/atuador?estado=normal&buzzer=1")
     verificar(codigo == 200 and r["atuador"]["buzzer"] == 1, "/atuador?estado=normal&buzzer=1 liga o buzzer")
+    codigo, _, r = pedir_json(base, "/atuador?bip=1")
+    verificar(codigo == 200 and r["atuador"]["buzzer"] == 1, "/atuador?bip=1 dá um bipe curto (buzzer ligado agora)")
     codigo, _, r = pedir_json(base, "/atuador?estado=teste")
     verificar(codigo == 200 and r["atuador"]["estado"] == "teste", "/atuador?estado=teste inicia a sequência")
     time.sleep(2.5)
