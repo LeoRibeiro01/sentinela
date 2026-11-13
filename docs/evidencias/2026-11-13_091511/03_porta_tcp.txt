@@ -1,0 +1,15 @@
+﻿# Acesso a porta do servidor (handshake TCP)
+# Data: 2026-11-13 09:15:54  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+Porta 80 (servidor HTTP): TcpTestSucceeded = True
+
+
+ComputerName     : 172.20.10.8
+RemoteAddress    : 172.20.10.8
+RemotePort       : 80
+SourceAddress    : 172.20.10.9
+TcpTestSucceeded : True
+
+
+
+Porta 81 (nenhum servico, controle): TcpTestSucceeded = False
+

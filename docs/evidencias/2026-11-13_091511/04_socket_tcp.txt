@@ -1,0 +1,18 @@
+﻿# Cliente TCP escrito a mao (socket) enviando HTTP cru
+# Data: 2026-11-13 09:15:54  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+Conexao TCP: 172.20.10.9:52480 -> 172.20.10.8:80
+
+>>> enviado:
+GET /sensor HTTP/1.1
+Host: 172.20.10.8
+Connection: close
+
+<<< recebido:
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Access-Control-Allow-Origin: *
+Cache-Control: no-store
+Content-Length: 92
+Connection: close
+
+{"rms":26,"pico":86,"nivel":4,"clipping":false,"ts_ms":743198,"adc_min":1264,"adc_max":1434}

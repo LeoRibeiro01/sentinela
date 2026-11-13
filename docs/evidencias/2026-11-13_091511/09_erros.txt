@@ -1,0 +1,129 @@
+﻿# Pedidos invalidos: o servidor responde 400/404 em JSON e registra AVISO no log
+# Data: 2026-11-13 09:16:08  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+
+==================== GET /atuador?estado=xyz ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52498 
+* using HTTP/1.x
+> GET /atuador?estado=xyz HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 400 Bad Request
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 60
+
+< Connection: close
+
+< 
+
+{ [60 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=400 TEMPO=0.026181s
+
+--- corpo ---
+{"erro":"estado invalido; use normal, alerta, off ou teste"}
+==================== GET /audio.wav?ms=99999 ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52499 
+* using HTTP/1.x
+> GET /audio.wav?ms=99999 HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 400 Bad Request
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 44
+
+< Connection: close
+
+< 
+
+{ [44 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=400 TEMPO=0.105242s
+
+--- corpo ---
+{"erro":"ms deve ser inteiro de 200 a 2000"}
+==================== GET /rota-que-nao-existe ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52500 
+* using HTTP/1.x
+> GET /rota-que-nao-existe HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 404 Not Found
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 30
+
+< Connection: close
+
+< 
+
+{ [30 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=404 TEMPO=0.028686s
+
+--- corpo ---
+{"erro":"rota nao encontrada"}

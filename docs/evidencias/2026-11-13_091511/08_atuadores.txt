@@ -1,0 +1,171 @@
+﻿# Atuadores (LEDs, buzzer e tela OLED) comandados via rede
+# Data: 2026-11-13 09:16:01  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+
+==================== GET /atuador?estado=normal ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52494 
+* using HTTP/1.x
+> GET /atuador?estado=normal HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 200 OK
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 98
+
+< Connection: close
+
+< 
+
+{ [98 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=200 TEMPO=0.024449s
+
+--- corpo ---
+{"ok":true,"atuador":{"estado":"normal","verde":1,"vermelho":0,"buzzer":0,"tela":true,"falha":""}}
+==================== GET /atuador?estado=alerta&falha=Teste%20de%20evidencia ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52495 
+* using HTTP/1.x
+> GET /atuador?estado=alerta&falha=Teste%20de%20evidencia HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 200 OK
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 116
+
+< Connection: close
+
+< 
+
+{ [116 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=200 TEMPO=0.054155s
+
+--- corpo ---
+{"ok":true,"atuador":{"estado":"alerta","verde":0,"vermelho":1,"buzzer":1,"tela":true,"falha":"Teste de evidencia"}}
+==================== GET /atuador?estado=normal&buzzer=1 ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52496 
+* using HTTP/1.x
+> GET /atuador?estado=normal&buzzer=1 HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 200 OK
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 98
+
+< Connection: close
+
+< 
+
+{ [98 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=200 TEMPO=0.056711s
+
+--- corpo ---
+{"ok":true,"atuador":{"estado":"normal","verde":1,"vermelho":0,"buzzer":1,"tela":true,"falha":""}}
+==================== GET /atuador?estado=off ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52497 
+* using HTTP/1.x
+> GET /atuador?estado=off HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 200 OK
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 95
+
+< Connection: close
+
+< 
+
+{ [95 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=200 TEMPO=0.043256s
+
+--- corpo ---
+{"ok":true,"atuador":{"estado":"off","verde":0,"vermelho":0,"buzzer":0,"tela":true,"falha":""}}

@@ -1,0 +1,129 @@
+﻿# Comunicacao cliente-servidor HTTP (curl -v): rotas de consulta
+# Data: 2026-11-13 09:15:54  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+
+==================== GET /info ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52482 
+* using HTTP/1.x
+> GET /info HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 200 OK
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 193
+
+< Connection: close
+
+< 
+
+{ [193 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=200 TEMPO=0.024875s
+
+--- corpo ---
+{"nome":"SENTINELA","versao":"2.0","rotas":["/","/status","/sensor","/audio.wav?ms=1000","/atuador?estado=normal","/config?modo=manual","/log?linhas=50","/wifi?ssid=&senha=","/relogio?epoch="]}
+==================== GET /status ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52483 
+* using HTTP/1.x
+> GET /status HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 200 OK
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 590
+
+< Connection: close
+
+< 
+
+{ [590 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=200 TEMPO=0.045449s
+
+--- corpo ---
+{"ok":true,"versao":"2.0","boot":22,"uptime_s":743,"hora":"2026-11-13 09:15:53","hora_ok":true,"fs_real_hz":16000,"heap_livre":134380,"heap_minimo":106532,"modo":"manual","limiar":45,"atuador":{"estado":"off","verde":0,"vermelho":0,"buzzer":0,"tela":true,"falha":""},"rede":{"modo":"ap+sta","ap_ssid":"SENTINELA","ap_ip":"192.168.4.1","ap_mac":"B0:CB:D8:CD:83:55","clientes_ap":0,"sta_ssid":"iPhone","sta_conectado":true,"sta_ip":"172.20.10.8","sta_mac":"B0:CB:D8:CD:83:54","rssi":-48,"mdns":"sentinela.local"},"amostras_perdidas":4960,"intervalo_max_us":82,"clientes_wifi":0,"laco_hz":997}
+==================== GET /sensor ====================
+curl.exe : *   Trying 172.20.10.8:80...
+No C:\Users\Lenovo\Desktop\sentinela\tools\coletar_evidencias.ps1:43 caractere:16
++ ...  $verbose = & curl.exe -sS -v --max-time 8 -o $arqCorpo -w "`nHTTP_CO ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (*   Trying 172.20.10.8:80...:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+* Established connection to 172.20.10.8 (172.20.10.8 port 80) from 172.20.10.9 port 52484 
+* using HTTP/1.x
+> GET /sensor HTTP/1.1
+
+> Host: 172.20.10.8
+
+> User-Agent: curl/8.21.0
+
+> Accept: */*
+
+> 
+
+* Request completely sent off
+< HTTP/1.1 200 OK
+
+< Content-Type: application/json; charset=utf-8
+
+< Access-Control-Allow-Origin: *
+
+< Cache-Control: no-store
+
+< Content-Length: 93
+
+< Connection: close
+
+< 
+
+{ [93 bytes data]
+* shutting down connection #0
+
+HTTP_CODE=200 TEMPO=0.024258s
+
+--- corpo ---
+{"rms":36,"pico":172,"nivel":6,"clipping":false,"ts_ms":743448,"adc_min":1178,"adc_max":1488}

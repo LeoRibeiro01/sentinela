@@ -1,0 +1,21 @@
+﻿# Teste de conectividade (ICMP echo / ping)
+# Data: 2026-11-13 09:15:25  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+
+Disparando 172.20.10.8 com 32 bytes de dados:
+Resposta de 172.20.10.8: bytes=32 tempo=20ms TTL=64
+Resposta de 172.20.10.8: bytes=32 tempo=12ms TTL=64
+Resposta de 172.20.10.8: bytes=32 tempo=102ms TTL=64
+Resposta de 172.20.10.8: bytes=32 tempo=11ms TTL=64
+Resposta de 172.20.10.8: bytes=32 tempo=53ms TTL=64
+Resposta de 172.20.10.8: bytes=32 tempo=9ms TTL=64
+Resposta de 172.20.10.8: bytes=32 tempo=20ms TTL=64
+Esgotado o tempo limite do pedido.
+Resposta de 172.20.10.8: bytes=32 tempo=27ms TTL=64
+Resposta de 172.20.10.8: bytes=32 tempo=11ms TTL=64
+
+Estat�sticas do Ping para 172.20.10.8:
+    Pacotes: Enviados = 10, Recebidos = 9, Perdidos = 1 (10% de
+             perda),
+Aproximar um n�mero redondo de vezes em milissegundos:
+    M�nimo = 9ms, M�ximo = 102ms, M�dia = 29ms
+

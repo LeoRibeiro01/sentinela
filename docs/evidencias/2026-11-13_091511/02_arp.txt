@@ -1,0 +1,14 @@
+﻿# Tabela ARP do cliente (IP -> MAC, camada de enlace)
+# Data: 2026-11-13 09:15:25  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+
+Interface: 172.20.10.9 --- 0xe
+  Endere�o IP           Endere�o f�sico       Tipo
+  172.20.10.1           ba-7b-c5-b2-3d-64     din�mico  
+  172.20.10.8           b0-cb-d8-cd-83-54     din�mico  
+  172.20.10.15          ff-ff-ff-ff-ff-ff     est�tico  
+  224.0.0.22            01-00-5e-00-00-16     est�tico  
+  224.0.0.251           01-00-5e-00-00-fb     est�tico  
+  224.0.0.252           01-00-5e-00-00-fc     est�tico  
+  239.255.255.250       01-00-5e-7f-ff-fa     est�tico  
+  255.255.255.255       ff-ff-ff-ff-ff-ff     est�tico  
+

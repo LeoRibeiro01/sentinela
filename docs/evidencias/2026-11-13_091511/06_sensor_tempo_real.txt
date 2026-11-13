@@ -1,0 +1,8 @@
+﻿# Sensor (microfone) consultado via rede: 5 leituras, 1 por segundo
+# Data: 2026-11-13 09:15:55  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+leitura 1 : {"rms":29,"pico":101,"nivel":4,"clipping":false,"ts_ms":743948,"adc_min":1247,"adc_max":1450}
+leitura 2 : {"rms":20,"pico":206,"nivel":3,"clipping":false,"ts_ms":744948,"adc_min":1280,"adc_max":1556}
+leitura 3 : {"rms":30,"pico":146,"nivel":5,"clipping":false,"ts_ms":746198,"adc_min":1202,"adc_max":1441}
+leitura 4 : {"rms":20,"pico":156,"nivel":3,"clipping":false,"ts_ms":747198,"adc_min":1276,"adc_max":1505}
+leitura 5 : {"rms":23,"pico":94,"nivel":3,"clipping":false,"ts_ms":748448,"adc_min":1269,"adc_max":1445}
+

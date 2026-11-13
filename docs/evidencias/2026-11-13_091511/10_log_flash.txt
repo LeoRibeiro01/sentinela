@@ -1,0 +1,143 @@
+﻿# Log persistente lido da memoria flash do ESP32 (GET /log)
+# Data: 2026-11-13 09:16:08  Alvo: http://172.20.10.8:80  Cliente: LENOVO-NOTE
+sem hora (+0s) [INFO ] === Boot #1: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [AVISO] Nenhuma rede Wi-Fi configurada: só o ponto de acesso está ativo (use /wifi)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+43s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+175s) [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+sem hora (+180s) [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+sem hora (+180s) [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+sem hora (+0s) [INFO ] === Boot #2: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [AVISO] Nenhuma rede Wi-Fi configurada: só o ponto de acesso está ativo (use /wifi)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+19s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+142s) [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 08:13:18 [INFO ] Relógio ajustado pelo navegador: 2026-11-12 08:13:18
+2026-11-12 08:15:44 [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 08:15:47 [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 08:16:00 [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 08:16:16 [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 08:16:21 [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+sem hora (+0s) [INFO ] === Boot #3: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [AVISO] Nenhuma rede Wi-Fi configurada: só o ponto de acesso está ativo (use /wifi)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+31s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+91s) [AVISO] Captura de áudio perdeu 1766 amostras em 10 s
+sem hora (+1838s) [INFO ] Cliente entrou na rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+sem hora (+1860s) [INFO ] Cliente saiu da rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+sem hora (+1873s) [INFO ] Cliente entrou na rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+2026-11-12 08:49:19 [INFO ] Relógio ajustado pelo navegador: 2026-11-12 08:49:19
+sem hora (+0s) [INFO ] === Boot #4: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [AVISO] Nenhuma rede Wi-Fi configurada: só o ponto de acesso está ativo (use /wifi)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+7s) [INFO ] Cliente entrou na rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+sem hora (+7s) [INFO ] Cliente saiu da rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+sem hora (+20s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+90s) [AVISO] Captura de áudio perdeu 1780 amostras em 10 s
+sem hora (+652s) [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+sem hora (+709s) [INFO ] Cliente entrou na rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+2026-11-12 09:11:56 [INFO ] Relógio ajustado pelo navegador: 2026-11-12 09:11:56
+2026-11-12 09:13:05 [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 09:13:07 [AVISO] Captura de áudio perdeu 1661 amostras em 10 s
+2026-11-12 09:17:54 [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 09:18:09 [INFO ] Nova rede Wi-Fi configurada: "iPhone" (senha não é registrada)
+2026-11-12 09:18:09 [AVISO] Pedido inválido (404) em /favicon.ico de 192.168.4.2
+2026-11-12 09:18:09 [INFO ] Wi-Fi conectado a "iPhone": IP 172.20.10.6, sinal -39 dBm
+2026-11-12 09:19:14 [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 09:20:03 [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 09:20:04 [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 09:20:20 [INFO ] Cliente saiu da rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+2026-11-12 09:21:21 [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 09:21:30 [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+2026-11-12 09:30:55 [AVISO] Conexão Wi-Fi com "iPhone" PERDIDA (motivo 2); reconectando
+2026-11-12 09:30:55 [AVISO] Sem conexão com "iPhone": tentativa 1 (a cada 15 s)
+2026-11-12 09:31:10 [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+2026-11-12 09:35:55 [AVISO] Sem conexão com "iPhone": tentativa 21 (a cada 15 s)
+2026-11-12 09:40:55 [AVISO] Sem conexão com "iPhone": tentativa 41 (a cada 15 s)
+2026-11-12 09:45:55 [AVISO] Sem conexão com "iPhone": tentativa 61 (a cada 15 s)
+2026-11-12 09:50:55 [AVISO] Sem conexão com "iPhone": tentativa 81 (a cada 15 s)
+2026-11-12 09:55:55 [AVISO] Sem conexão com "iPhone": tentativa 101 (a cada 15 s)
+2026-11-12 09:58:48 [INFO ] Cliente entrou na rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+2026-11-12 09:59:04 [INFO ] Cliente saiu da rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+2026-11-12 09:59:04 [INFO ] Cliente entrou na rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+2026-11-12 10:00:55 [AVISO] Sem conexão com "iPhone": tentativa 121 (a cada 15 s)
+2026-11-12 10:01:48 [INFO ] Cliente saiu da rede SENTINELA (MAC 0A:FB:F1:9C:35:67)
+sem hora (+0s) [INFO ] === Boot #5: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [INFO ] Conectando à rede Wi-Fi "iPhone" (MAC da estação B0:CB:D8:CD:83:54)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+28s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+28s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+98s) [AVISO] Captura de áudio perdeu 1908 amostras em 10 s
+sem hora (+0s) [INFO ] === Boot #8: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [INFO ] Conectando à rede Wi-Fi "iPhone" (MAC da estação B0:CB:D8:CD:83:54)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+0s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+15s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+100s) [AVISO] Captura de áudio perdeu 1911 amostras em 10 s
+sem hora (+0s) [INFO ] === Boot #18: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [INFO ] Conectando à rede Wi-Fi "iPhone" (MAC da estação B0:CB:D8:CD:83:54)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+0s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+15s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+100s) [AVISO] Captura de áudio perdeu 1784 amostras em 10 s
+sem hora (+300s) [AVISO] Sem conexão com "iPhone": tentativa 21 (a cada 15 s)
+sem hora (+600s) [AVISO] Sem conexão com "iPhone": tentativa 41 (a cada 15 s)
+sem hora (+900s) [AVISO] Sem conexão com "iPhone": tentativa 61 (a cada 15 s)
+sem hora (+0s) [INFO ] === Boot #19: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [INFO ] Conectando à rede Wi-Fi "iPhone" (MAC da estação B0:CB:D8:CD:83:54)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+0s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+15s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+263s) [INFO ] Cliente entrou na rede SENTINELA (MAC 20:2B:20:FA:53:35)
+sem hora (+265s) [INFO ] Nova rede Wi-Fi configurada: "iPhone" (senha não é registrada)
+sem hora (+268s) [INFO ] Cliente saiu da rede SENTINELA (MAC 20:2B:20:FA:53:35)
+sem hora (+280s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+284s) [INFO ] Wi-Fi conectado a "iPhone": IP 172.20.10.8, sinal -33 dBm
+2026-11-12 10:36:57 [INFO ] Relógio ajustado pelo NTP: 2026-11-12 10:36:57
+2026-11-12 10:37:35 [AVISO] Conexão Wi-Fi com "iPhone" PERDIDA (motivo 2); reconectando
+2026-11-12 10:37:35 [AVISO] Sem conexão com "iPhone": tentativa 1 (a cada 15 s)
+2026-11-12 10:37:50 [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+0s) [INFO ] === Boot #20: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [INFO ] Conectando à rede Wi-Fi "iPhone" (MAC da estação B0:CB:D8:CD:83:54)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+0s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+10s) [AVISO] Captura de áudio perdeu 1638 amostras em 10 s
+sem hora (+15s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+0s) [INFO ] === Boot #21: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [INFO ] Conectando à rede Wi-Fi "iPhone" (MAC da estação B0:CB:D8:CD:83:54)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+0s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+15s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+17s) [INFO ] Wi-Fi conectado a "iPhone": IP 172.20.10.8, sinal -33 dBm
+2026-11-12 11:16:30 [INFO ] Relógio ajustado pelo NTP: 2026-11-12 11:16:30 (este boot #21 começou às 11:16:11)
+2026-11-12 11:17:44 [AVISO] Conexão Wi-Fi com "iPhone" PERDIDA (motivo 2); reconectando
+2026-11-12 11:17:44 [AVISO] Sem conexão com "iPhone": tentativa 1 (a cada 15 s)
+2026-11-12 11:17:59 [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+0s) [INFO ] === Boot #22: SENTINELA v2.0 ligado (energia ligada) ===
+sem hora (+0s) [INFO ] Ponto de acesso "SENTINELA" ativo: IP 192.168.4.1, MAC B0:CB:D8:CD:83:55
+sem hora (+0s) [INFO ] Conectando à rede Wi-Fi "iPhone" (MAC da estação B0:CB:D8:CD:83:54)
+sem hora (+0s) [INFO ] Servidor HTTP ouvindo na porta TCP 80
+sem hora (+0s) [INFO ] Tela OLED detectada no endereço I2C 0x3C
+sem hora (+15s) [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+sem hora (+300s) [AVISO] Sem conexão com "iPhone": tentativa 21 (a cada 15 s)
+sem hora (+600s) [AVISO] Sem conexão com "iPhone": tentativa 41 (a cada 15 s)
+sem hora (+664s) [INFO ] Wi-Fi conectado a "iPhone": IP 172.20.10.8, sinal -48 dBm
+2026-11-13 09:14:46 [INFO ] Relógio ajustado pelo NTP: 2026-11-13 09:14:46 (este boot #22 começou às 09:03:29)
+2026-11-13 09:15:59 [INFO ] Atuador -> normal (comando de 172.20.10.9)
+2026-11-13 09:16:01 [AVISO] Atuador -> alerta | falha: Teste de evidencia (comando de 172.20.10.9)
+2026-11-13 09:16:02 [INFO ] Atuador -> normal | buzzer ligado (comando de 172.20.10.9)
+2026-11-13 09:16:04 [INFO ] Atuador -> off (comando de 172.20.10.9)
+2026-11-13 09:16:06 [AVISO] Pedido inválido (400) em /atuador de 172.20.10.9
+2026-11-13 09:16:06 [AVISO] Pedido inválido (400) em /audio.wav de 172.20.10.9
+2026-11-13 09:16:06 [AVISO] Pedido inválido (404) em /rota-que-nao-existe de 172.20.10.9
+
