@@ -135,6 +135,17 @@ def main():
             p.paragraph_format.space_before = Pt(12)
             i += 1
             continue
+        if linha.startswith("```"):  # bloco de código: fonte monoespaçada 10, espaço simples
+            i += 1
+            while i < len(linhas) and not linhas[i].startswith("```"):
+                p = doc.add_paragraph()
+                run = p.add_run(linhas[i])
+                run.font.name = "Courier New"
+                run.font.size = Pt(9)
+                formatar(p, recuo=False, alinhamento=WD_ALIGN_PARAGRAPH.LEFT, espaco=1.0)
+                i += 1
+            i += 1
+            continue
         if linha.startswith("|"):
             bloco = []
             while i < len(linhas) and linhas[i].startswith("|"):

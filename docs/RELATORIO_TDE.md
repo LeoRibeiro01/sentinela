@@ -241,7 +241,7 @@ Fonte: os autores (2026).
 
 Testes complementares: reconexão (desligar e religar o hotspot e verificar no log as linhas de queda e reconexão com data e hora); persistência (reiniciar a placa e verificar que o log anterior permanece); queda do servidor (desligar a placa com a página aberta e verificar que a interface some e volta sozinha); resistência (30 minutos de operação contínua com `tools/teste_fase1.py resistencia`).
 
-## 5.2 Testes já realizados na placa (09/11/2026, firmware v1)
+## 5.2 Testes realizados na placa com o firmware v1 (09/11/2026)
 
 - Rotas HTTP: 42 de 42 verificações aprovadas (`teste_fase1.py rotas`); 20 de 20 pedidos seguidos respondidos, ~140 ms cada.
 - Amostragem com Wi-Fi ativo: 15 999 a 16 000 Hz medidos, maior intervalo entre amostras de 80 a 85 µs, 1 amostra perdida.
@@ -249,9 +249,46 @@ Testes complementares: reconexão (desligar e religar o hotspot e verificar no l
 - Atuadores: LEDs verde e vermelho, LED da placa e buzzer acionados pela rede e confirmados visual e auditivamente.
 - Queda e reconexão do cliente: com a placa desconectada, o dashboard indicou "desconectado" e reconectou sozinho.
 
-## 5.3 Evidências da versão final (v2.0)
+## 5.3 Evidências da versão final (v2.0, 13/11/2026)
 
-[Preencher após executar `coletar_evidencias.ps1` com a placa e a tela montadas: copiar aqui a tabela do `RESUMO.md`, incluir capturas da tela OLED, do dashboard no celular e no PC, e o trecho do log com a queda e a reconexão do Wi-Fi.]
+Montagem completa (microfone, tela OLED, LEDs e buzzer), placa conectada como estação ao ponto de acesso de um celular (rede "iPhone", IP 172.20.10.8, sinal −47 dBm) e notebook cliente na mesma rede (172.20.10.9). Arquivos em `docs/evidencias/2026-11-13_091511/`.
+
+**Quadro 5 – Resultado dos testes na placa (v2.0)**
+
+| Teste | Resultado | Evidência |
+|---|---|---|
+| Ping (ICMP) | 9 de 10 respostas, 9 a 102 ms (perda isolada, típica de hotspot) | `01_ping.txt` |
+| ARP | IP 172.20.10.8 → MAC b0-cb-d8-cd-83-54, igual ao `sta_mac` informado pela placa | `02_arp.txt` |
+| Porta TCP 80 | Aberta (handshake concluído); porta 81 fechada | `03_porta_tcp.txt` |
+| Socket TCP escrito à mão | `GET /sensor HTTP/1.1` enviado em texto puro; resposta `HTTP/1.1 200 OK` com JSON | `04_socket_tcp.txt` |
+| Rotas `/info`, `/status`, `/sensor` | HTTP 200; `/status` com IP e MAC da estação e do AP, rede, sinal e hora | `05_rotas_consulta.txt` |
+| Sensor em tempo real | 5 leituras com carimbos de tempo distintos | `06_sensor_tempo_real.txt` |
+| Áudio | WAV de 1 s (32 044 bytes, 16 kHz, 16 bits, mono) | `07_audio_1s.wav` |
+| Atuadores via rede | normal, alerta com texto de falha na tela, bipe, off: todos HTTP 200 com o estado esperado | `08_atuadores.txt` |
+| Tratamento de erros | 400 para parâmetro inválido, 404 para rota inexistente, todos registrados como AVISO | `09_erros.txt` |
+| Log persistente | Linhas com data, hora, nível (INFO/AVISO) e IP do cliente | `10_log_flash.txt` |
+| Reconexão Wi-Fi | Hotspot desligado e religado: "PERDIDA" às 09:17:23 e "RECONECTADO após 32 s" às 09:17:56, mesmo IP | `11_reconexao_wifi.txt` |
+
+Fonte: os autores (2026).
+
+Resultado: **19 de 19 verificações aprovadas** (18 automáticas e o teste manual de reconexão). Trecho do log gravado na flash durante o teste de reconexão:
+
+```text
+2026-11-13 09:17:23 [AVISO] Conexão Wi-Fi com "iPhone" PERDIDA (motivo 2); reconectando
+2026-11-13 09:17:23 [AVISO] Sem conexão com "iPhone": tentativa 1 (a cada 15 s)
+2026-11-13 09:17:38 [AVISO] Sem conexão com "iPhone": tentativa 2 (a cada 15 s)
+2026-11-13 09:17:56 [INFO ] Wi-Fi RECONECTADO a "iPhone" após 32 s: IP 172.20.10.8
+```
+
+Outras verificações na placa:
+
+- **Inicialização:** o servidor HTTP fica disponível **0,34 s** após ligar. Uma primeira versão levava ~29 s; a medição de cada etapa na Serial mostrou que, depois que a captura de áudio começava, o restante da inicialização (no mesmo núcleo) quase não recebia CPU. A captura passou a ser a última etapa.
+- **Tela OLED:** detectada automaticamente no endereço I2C 0x3C; exibe estado, texto da falha, IP e hora, e foi reconhecida também ao ser ligada com a placa em funcionamento.
+- **Página servida pela placa:** acessada no notebook e no celular; com a placa desligada a página não abre e, aberta, é substituída pelo aviso "ESP32 DESCONECTADO", voltando sozinha quando a placa religa.
+- **Quedas espontâneas:** o log registrou quedas com motivo 200 (*beacon timeout*), causadas pelo hotspot do celular ao entrar em economia de energia; em todas a placa reconectou sozinha (24 a 167 s).
+- **Diagnóstico pela rede:** o serviço de IA comandou a placa com o resultado (`/atuador?estado=alerta&falha=...&bip=1`): tela OLED com a falha e a probabilidade, LED vermelho e bipe curto ao fim. Um som de correia obtido de uma rede social, fora do conjunto de treino, foi classificado corretamente; trata-se de um teste isolado, e as métricas de referência são as do conjunto de teste (`docs/metricas_ia.md`).
+
+[Inserir aqui: foto da montagem; tela OLED em ALERTA; dashboard no PC e no celular; painel "Log do sistema".]
 
 # 6 RESULTADOS
 

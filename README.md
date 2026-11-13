@@ -167,6 +167,7 @@ Treino (reproduzível, já existe um modelo treinado em `models/`):
 | Documento | Conteúdo |
 |---|---|
 | [docs/RELATORIO_TDE.md](docs/RELATORIO_TDE.md) | **Relatório no formato ABNT** (introdução, fundamentação, projetos semelhantes, arquitetura, desenvolvimento, testes, resultados, conclusão, referências) |
+| [docs/PANORAMA_APRESENTACAO.md](docs/PANORAMA_APRESENTACAO.md) | **Panorama para a apresentação**: requisitos × atendimento, como tudo funciona, cada elemento do dashboard, números, roteiro de slides e de demo |
 | [docs/CHECKLIST_TDE.md](docs/CHECKLIST_TDE.md) | Cada requisito do regulamento × onde é atendido × como provar |
 | [docs/API.md](docs/API.md) | Rotas do ESP32 e do serviço de IA |
 | [docs/EXPLICACAO_CODIGO.md](docs/EXPLICACAO_CODIGO.md) | Cada arquivo: propósito, fluxo, funções e perguntas prováveis da defesa |
