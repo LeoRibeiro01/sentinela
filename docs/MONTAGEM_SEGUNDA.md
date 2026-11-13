@@ -78,7 +78,8 @@ Se o hotspot falhar, tudo continua funcionando pela rede `SENTINELA` (192.168.4.
 $ip = "192.168.4.1"   # ou o IP mostrado na tela
 curl.exe "http://$ip/atuador?estado=teste"                              # pisca, BEEP; tela "TESTE"
 curl.exe "http://$ip/atuador?estado=normal"                             # verde; tela "NORMAL / Motor normal"
-curl.exe "http://$ip/atuador?estado=alerta&falha=Batida%20de%20pino"    # vermelho + buzzer; tela "ALERTA" piscando + "Batida de pino"
+curl.exe "http://$ip/atuador?estado=alerta&falha=Batida%20de%20pino"    # vermelho (sem apito); tela "ALERTA" piscando + "Batida de pino"
+curl.exe "http://$ip/atuador?bip=1"                                     # apito leve de 150 ms
 curl.exe "http://$ip/atuador?estado=off"                                # tudo apagado; tela "DESLIGADO"
 ```
 

@@ -80,11 +80,12 @@ WAV PCM 16-bit mono com o trecho **mais recente** do buffer. `ms` de **200 a 200
 | `estado` | Tela OLED | LEDs e buzzer |
 |---|---|---|
 | `normal` | "NORMAL" + texto (padrão: "Motor normal") | LED verde aceso |
-| `alerta` | "ALERTA" piscando + texto da falha (padrão: "Falha detectada") | LED vermelho + buzzer + LED azul onboard (GPIO2) |
+| `alerta` | "ALERTA" piscando + texto da falha (padrão: "Falha detectada") | LED vermelho + LED azul onboard (GPIO2); **sem apito** |
 | `off` | "DESLIGADO" + "Aguardando comando" | tudo apagado |
 | `teste` | "TESTE" | ~2 s: pisca verde/vermelho, beep de 0,5 s; depois volta ao estado anterior |
 
-- `buzzer=1`/`0` força o buzzer ligado/desligado junto com `normal` ou `alerta` (ex.: alerta silencioso com `estado=alerta&buzzer=0`).
+- `bip=1`: **apito leve de 150 ms** (o serviço de IA manda ao fim de cada diagnóstico). Pode vir sozinho (`/atuador?bip=1`), sem mudar o estado. O alerta não apita: um apito contínuo incomodava e disparava com o barulho da sala no modo auto.
+- `buzzer=1`/`0` (mantido por compatibilidade): força o buzzer ligado/desligado de forma contínua junto com `normal` ou `alerta`.
 - `falha` (opcional, até 40 bytes UTF-8, sem aspas nem barras): texto exibido na tela, por exemplo a falha diagnosticada pela IA (`falha=Batida%20de%20pino%20(78%25)`). Acentos viram letras simples na tela (a fonte do OLED não os tem). Sem `falha`, a tela mostra a mensagem padrão do estado.
 - Cada mudança de estado vira uma linha no log (`AVISO` para alerta, `INFO` para os demais), com o IP de quem mandou.
 
